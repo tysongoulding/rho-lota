@@ -1,7 +1,6 @@
 import React from "react";
 import { useSessionStore, TurnPhase } from "../../store/sessionStore";
 import { useUiStore } from "../../store/uiStore";
-import { useWorkspaceStore } from "../../store/workspaceStore";
 import { invoke } from "@tauri-apps/api/core";
 import {
   PanelLeft,
@@ -12,7 +11,6 @@ import {
   Wrench,
   ShieldAlert,
   AlertCircle,
-  GitBranch,
   Minus,
   Square,
   X,
@@ -21,7 +19,6 @@ import {
 export function Titlebar() {
   const { sessionInfo, usage, turnPhase } = useSessionStore();
   const { toggleSidebar, toggleWorkbench, workbenchOpen, sidebarOpen } = useUiStore();
-  const { workspacePath, gitBranch } = useWorkspaceStore();
 
   const handleHeaderMouseDown = (e: React.MouseEvent) => {
     if (e.buttons === 1 && e.detail === 1) {
@@ -103,7 +100,7 @@ export function Titlebar() {
       onDoubleClick={handleHeaderDoubleClick}
       className="flex items-center justify-between pl-3 pr-0 border-b border-[#30363d] bg-[#161b22] select-none text-xs h-9 cursor-default"
     >
-      {/* Left Section: Logo & Name -> Sidebar Toggle -> Workspace Pill -> Model */}
+      {/* Left Section: Logo & Name -> Sidebar Toggle */}
       <div className="flex items-center space-x-2.5 h-full z-10" data-tauri-drag-region>
         {/* Logo & Company Name */}
         <div className="flex items-center space-x-2">
@@ -126,20 +123,10 @@ export function Titlebar() {
         >
           <PanelLeft className="w-3.5 h-3.5" />
         </button>
-
-        {/* Workspace Path & Git Branch */}
-        <div className="flex items-center space-x-1 text-[#8b949e] font-mono text-[11px] bg-[#0d1117] px-2 py-0.5 rounded border border-[#30363d]">
-          <span>{workspacePath}</span>
-          <span className="text-[#484f58]">/</span>
-          <GitBranch className="w-3 h-3 text-purple-400" />
-          <span className="text-purple-300">{gitBranch}</span>
-        </div>
-
-        {/* Model info */}
-        <span className="text-[#8b949e] font-mono hidden lg:inline">
-          {sessionInfo.provider || "anthropic"} / {sessionInfo.model || "claude-3-7-sonnet"}
-        </span>
       </div>
+
+      {/* Center Draggable Spacer */}
+      <div data-tauri-drag-region className="flex-1 h-full cursor-default" />
 
       {/* Right Section: Status -> Usage -> Session -> Workbench Toggle -> Window Controls */}
       <div className="flex items-center space-x-2 h-full text-[#8b949e] z-10" data-tauri-drag-region>
