@@ -10,14 +10,18 @@ export interface FileNode {
 
 interface WorkspaceState {
   workspacePath: string;
+  repoName: string;
   gitBranch: string;
+  worktree: string;
   files: FileNode[];
   selectedFile: { path: string; content?: string } | null;
   attachedFiles: string[];
   maxContextTokens: number;
 
   setWorkspacePath: (path: string) => void;
+  setRepoName: (repo: string) => void;
   setGitBranch: (branch: string) => void;
+  setWorktree: (worktree: string) => void;
   setFiles: (files: FileNode[]) => void;
   selectFile: (file: { path: string; content?: string } | null) => void;
   attachFile: (path: string) => void;
@@ -67,6 +71,15 @@ const DEFAULT_MOCK_FILES: FileNode[] = [
           { path: "crates/rho-harness-core/src/lib.rs", name: "lib.rs", isDir: false, size: 2100 },
         ],
       },
+      {
+        path: "crates/rho-plugin-sdk",
+        name: "rho-plugin-sdk",
+        isDir: true,
+        children: [
+          { path: "crates/rho-plugin-sdk/Cargo.toml", name: "Cargo.toml", isDir: false, size: 850 },
+          { path: "crates/rho-plugin-sdk/src/lib.rs", name: "lib.rs", isDir: false, size: 1400 },
+        ],
+      },
     ],
   },
   {
@@ -84,15 +97,19 @@ const DEFAULT_MOCK_FILES: FileNode[] = [
 ];
 
 export const useWorkspaceStore = create<WorkspaceState>((set) => ({
-  workspacePath: "rho",
-  gitBranch: "lota-feature",
+  workspacePath: "c:\\Users\\tyson\\.repo\\personal\\rho",
+  repoName: "rho-lota",
+  gitBranch: "feature/07-ui_ux",
+  worktree: "default",
   files: DEFAULT_MOCK_FILES,
   selectedFile: null,
   attachedFiles: [],
   maxContextTokens: 200_000,
 
   setWorkspacePath: (path: string) => set({ workspacePath: path }),
+  setRepoName: (repo: string) => set({ repoName: repo }),
   setGitBranch: (branch: string) => set({ gitBranch: branch }),
+  setWorktree: (worktree: string) => set({ worktree }),
   setFiles: (files: FileNode[]) => set({ files }),
   selectFile: (file) => set({ selectedFile: file }),
   attachFile: (path: string) =>
