@@ -3,6 +3,9 @@ import { create } from "zustand";
 export type ActiveView =
   | "chat"
   | "files"
+  | "customise"
+  | "artifacts"
+  | "automation"
   | "settings";
 
 export type SettingsTab =

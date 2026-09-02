@@ -15,6 +15,9 @@ import { QueueBadge } from "./components/editor/QueueBadge";
 import { PromptInput } from "./components/editor/PromptInput";
 import { StreamingWorkbench } from "./components/workbench/StreamingWorkbench";
 import { WorkspaceExplorer } from "./components/workspace/WorkspaceExplorer";
+import { CustomiseView } from "./components/views/CustomiseView";
+import { ArtifactsView } from "./components/views/ArtifactsView";
+import { AutomationView } from "./components/views/AutomationView";
 import { SettingsHubView } from "./components/settings/SettingsHubView";
 import { CommandPalette } from "./components/palette/CommandPalette";
 import { ToastContainer } from "./components/common/ToastContainer";
@@ -84,6 +87,9 @@ export default function App() {
             </>
           )}
           {activeView === "files" && <WorkspaceExplorer />}
+          {activeView === "customise" && <CustomiseView />}
+          {activeView === "artifacts" && <ArtifactsView />}
+          {activeView === "automation" && <AutomationView />}
           {activeView === "settings" && <SettingsHubView />}
         </main>
 

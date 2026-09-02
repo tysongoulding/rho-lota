@@ -25,9 +25,7 @@ export function Sidebar() {
   const {
     sidebarOpen,
     activeView,
-    activeSettingsTab,
     setActiveView,
-    setActiveSettingsTab,
     setNewAgentModalOpen,
     setNewChatModalOpen,
   } = useUiStore();
@@ -97,15 +95,12 @@ export function Sidebar() {
         </button>
       </div>
 
-      {/* Feature Links Section (Customise, Artifacts, Automation taking over Main View) */}
+      {/* Feature Links Section (Customise, Artifacts, Automation as distinct Views) */}
       <div className="p-2 space-y-1 flex-shrink-0">
         <button
-          onClick={() => {
-            setActiveSettingsTab("theme");
-            setActiveView("settings");
-          }}
+          onClick={() => setActiveView("customise")}
           className={`w-full flex items-center space-x-2 px-2.5 py-1.5 rounded-lg transition text-left ${
-            activeView === "settings" && activeSettingsTab === "theme"
+            activeView === "customise"
               ? "bg-[#1f6feb]/20 text-[#58a6ff] font-medium border border-blue-500/40"
               : "text-[#c9d1d9] hover:bg-[#161b22] border border-transparent"
           }`}
@@ -116,12 +111,9 @@ export function Sidebar() {
         </button>
 
         <button
-          onClick={() => {
-            setActiveSettingsTab("plans");
-            setActiveView("settings");
-          }}
+          onClick={() => setActiveView("artifacts")}
           className={`w-full flex items-center space-x-2 px-2.5 py-1.5 rounded-lg transition text-left ${
-            activeView === "settings" && activeSettingsTab === "plans"
+            activeView === "artifacts"
               ? "bg-[#1f6feb]/20 text-[#58a6ff] font-medium border border-blue-500/40"
               : "text-[#c9d1d9] hover:bg-[#161b22] border border-transparent"
           }`}
@@ -132,12 +124,9 @@ export function Sidebar() {
         </button>
 
         <button
-          onClick={() => {
-            setActiveSettingsTab("tools");
-            setActiveView("settings");
-          }}
+          onClick={() => setActiveView("automation")}
           className={`w-full flex items-center space-x-2 px-2.5 py-1.5 rounded-lg transition text-left ${
-            activeView === "settings" && activeSettingsTab === "tools"
+            activeView === "automation"
               ? "bg-[#1f6feb]/20 text-[#58a6ff] font-medium border border-blue-500/40"
               : "text-[#c9d1d9] hover:bg-[#161b22] border border-transparent"
           }`}
@@ -312,15 +301,12 @@ export function Sidebar() {
         </div>
       </div>
 
-      {/* Bottom Settings Button (routes to Settings Hub in Main View) */}
+      {/* Bottom Settings Button */}
       <div className="p-2 border-t border-[#30363d] bg-[#161b22]/50 flex-shrink-0">
         <button
-          onClick={() => {
-            setActiveSettingsTab("general");
-            setActiveView("settings");
-          }}
+          onClick={() => setActiveView("settings")}
           className={`w-full flex items-center space-x-2 px-2.5 py-2 rounded-lg transition text-left ${
-            activeView === "settings" && activeSettingsTab === "general"
+            activeView === "settings"
               ? "bg-[#1f6feb]/20 text-[#58a6ff] font-medium border border-blue-500/40"
               : "text-[#c9d1d9] hover:bg-[#21262d] hover:text-white border border-transparent"
           }`}
