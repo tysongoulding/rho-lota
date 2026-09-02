@@ -25,6 +25,11 @@ interface UiState {
   commandPaletteOpen: boolean;
   newChatModalOpen: boolean;
   newAgentModalOpen: boolean;
+  customiseModalOpen: boolean;
+  artifactsModalOpen: boolean;
+  automationModalOpen: boolean;
+  settingsModalOpen: boolean;
+
   activeView: ActiveView;
   activeSettingsTab: SettingsTab;
   activeWorkbenchTab: WorkbenchTab;
@@ -40,6 +45,11 @@ interface UiState {
   setCommandPaletteOpen: (open: boolean) => void;
   setNewChatModalOpen: (open: boolean) => void;
   setNewAgentModalOpen: (open: boolean) => void;
+  setCustomiseModalOpen: (open: boolean) => void;
+  setArtifactsModalOpen: (open: boolean) => void;
+  setAutomationModalOpen: (open: boolean) => void;
+  setSettingsModalOpen: (open: boolean) => void;
+
   setActiveView: (view: ActiveView) => void;
   setActiveSettingsTab: (tab: SettingsTab) => void;
   setActiveWorkbenchTab: (tab: WorkbenchTab) => void;
@@ -53,6 +63,11 @@ export const useUiStore = create<UiState>((set) => ({
   commandPaletteOpen: false,
   newChatModalOpen: false,
   newAgentModalOpen: false,
+  customiseModalOpen: false,
+  artifactsModalOpen: false,
+  automationModalOpen: false,
+  settingsModalOpen: false,
+
   activeView: "chat",
   activeSettingsTab: "general",
   activeWorkbenchTab: "diff",
@@ -68,6 +83,11 @@ export const useUiStore = create<UiState>((set) => ({
   setCommandPaletteOpen: (open: boolean) => set({ commandPaletteOpen: open }),
   setNewChatModalOpen: (open: boolean) => set({ newChatModalOpen: open }),
   setNewAgentModalOpen: (open: boolean) => set({ newAgentModalOpen: open }),
+  setCustomiseModalOpen: (open: boolean) => set({ customiseModalOpen: open }),
+  setArtifactsModalOpen: (open: boolean) => set({ artifactsModalOpen: open }),
+  setAutomationModalOpen: (open: boolean) => set({ automationModalOpen: open }),
+  setSettingsModalOpen: (open: boolean) => set({ settingsModalOpen: open }),
+
   setActiveView: (view: ActiveView) => set({ activeView: view }),
   setActiveSettingsTab: (tab: SettingsTab) => set({ activeSettingsTab: tab }),
   setActiveWorkbenchTab: (tab: WorkbenchTab) => set({ activeWorkbenchTab: tab }),

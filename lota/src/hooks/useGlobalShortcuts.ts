@@ -9,9 +9,17 @@ export function useGlobalShortcuts() {
     toggleWorkbench,
     setNewChatModalOpen,
     setNewAgentModalOpen,
+    setCustomiseModalOpen,
+    setArtifactsModalOpen,
+    setAutomationModalOpen,
+    setSettingsModalOpen,
     commandPaletteOpen,
     newChatModalOpen,
     newAgentModalOpen,
+    customiseModalOpen,
+    artifactsModalOpen,
+    automationModalOpen,
+    settingsModalOpen,
   } = useUiStore();
 
   useEffect(() => {
@@ -46,11 +54,15 @@ export function useGlobalShortcuts() {
         return;
       }
 
-      // Escape -> Close modals if open
+      // Escape -> Close any open modal
       if (e.key === "Escape") {
         if (commandPaletteOpen) setCommandPaletteOpen(false);
         if (newChatModalOpen) setNewChatModalOpen(false);
         if (newAgentModalOpen) setNewAgentModalOpen(false);
+        if (customiseModalOpen) setCustomiseModalOpen(false);
+        if (artifactsModalOpen) setArtifactsModalOpen(false);
+        if (automationModalOpen) setAutomationModalOpen(false);
+        if (settingsModalOpen) setSettingsModalOpen(false);
       }
     };
 
@@ -63,8 +75,16 @@ export function useGlobalShortcuts() {
     toggleWorkbench,
     setNewChatModalOpen,
     setNewAgentModalOpen,
+    setCustomiseModalOpen,
+    setArtifactsModalOpen,
+    setAutomationModalOpen,
+    setSettingsModalOpen,
     commandPaletteOpen,
     newChatModalOpen,
     newAgentModalOpen,
+    customiseModalOpen,
+    artifactsModalOpen,
+    automationModalOpen,
+    settingsModalOpen,
   ]);
 }
