@@ -1,7 +1,5 @@
 import { useEffect } from "react";
 import { useUiStore } from "../store/uiStore";
-import { useSessionStore } from "../store/sessionStore";
-import { useToastStore } from "../store/toastStore";
 
 export function useGlobalShortcuts() {
   const {
@@ -9,11 +7,12 @@ export function useGlobalShortcuts() {
     setCommandPaletteOpen,
     toggleSidebar,
     toggleWorkbench,
+    setNewChatModalOpen,
+    setNewAgentModalOpen,
     commandPaletteOpen,
-    setActiveView,
+    newChatModalOpen,
+    newAgentModalOpen,
   } = useUiStore();
-  const { resetSession } = useSessionStore();
-  const { addToast } = useToastStore();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -40,18 +39,18 @@ export function useGlobalShortcuts() {
         return;
       }
 
-      // Ctrl+Shift+N -> New Session
+      // Ctrl+Shift+N -> New Chat Modal
       if (isCtrlOrCmd && e.shiftKey && e.key.toLowerCase() === "n") {
         e.preventDefault();
-        resetSession();
-        setActiveView("chat");
-        addToast("Started new session", "success");
+        setNewChatModalOpen(true);
         return;
       }
 
-      // Escape -> Close command palette if open
-      if (e.key === "Escape" && commandPaletteOpen) {
-        setCommandPaletteOpen(false);
+      // Escape -> Close modals if open
+      if (e.key === "Escape") {
+        if (commandPaletteOpen) setCommandPaletteOpen(false);
+        if (newChatModalOpen) setNewChatModalOpen(false);
+        if (newAgentModalOpen) setNewAgentModalOpen(false);
       }
     };
 
@@ -62,9 +61,10 @@ export function useGlobalShortcuts() {
     setCommandPaletteOpen,
     toggleSidebar,
     toggleWorkbench,
+    setNewChatModalOpen,
+    setNewAgentModalOpen,
     commandPaletteOpen,
-    resetSession,
-    setActiveView,
-    addToast,
+    newChatModalOpen,
+    newAgentModalOpen,
   ]);
 }

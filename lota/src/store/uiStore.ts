@@ -17,6 +17,8 @@ interface UiState {
   workbenchOpen: boolean;
   statusbarOpen: boolean;
   commandPaletteOpen: boolean;
+  newChatModalOpen: boolean;
+  newAgentModalOpen: boolean;
   activeView: ActiveView;
   activeWorkbenchTab: WorkbenchTab;
   selectedSessionId: string | null;
@@ -29,6 +31,8 @@ interface UiState {
   setStatusbarOpen: (open: boolean) => void;
   toggleCommandPalette: () => void;
   setCommandPaletteOpen: (open: boolean) => void;
+  setNewChatModalOpen: (open: boolean) => void;
+  setNewAgentModalOpen: (open: boolean) => void;
   setActiveView: (view: ActiveView) => void;
   setActiveWorkbenchTab: (tab: WorkbenchTab) => void;
   setSelectedSessionId: (id: string | null) => void;
@@ -39,6 +43,8 @@ export const useUiStore = create<UiState>((set) => ({
   workbenchOpen: false,
   statusbarOpen: true,
   commandPaletteOpen: false,
+  newChatModalOpen: false,
+  newAgentModalOpen: false,
   activeView: "chat",
   activeWorkbenchTab: "diff",
   selectedSessionId: null,
@@ -51,6 +57,8 @@ export const useUiStore = create<UiState>((set) => ({
   setStatusbarOpen: (open: boolean) => set({ statusbarOpen: open }),
   toggleCommandPalette: () => set((s) => ({ commandPaletteOpen: !s.commandPaletteOpen })),
   setCommandPaletteOpen: (open: boolean) => set({ commandPaletteOpen: open }),
+  setNewChatModalOpen: (open: boolean) => set({ newChatModalOpen: open }),
+  setNewAgentModalOpen: (open: boolean) => set({ newAgentModalOpen: open }),
   setActiveView: (view: ActiveView) => set({ activeView: view }),
   setActiveWorkbenchTab: (tab: WorkbenchTab) => set({ activeWorkbenchTab: tab }),
   setSelectedSessionId: (id: string | null) => set({ selectedSessionId: id }),

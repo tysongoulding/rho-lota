@@ -23,6 +23,8 @@ import { SessionGraphViewer } from "./components/dag/SessionGraphViewer";
 import { AppearanceSettings } from "./components/settings/AppearanceSettings";
 import { CommandPalette } from "./components/palette/CommandPalette";
 import { ToastContainer } from "./components/common/ToastContainer";
+import { NewChatModal } from "./components/modals/NewChatModal";
+import { NewAgentModal } from "./components/modals/NewAgentModal";
 
 export default function App() {
   const { messages, isRunning, addUserMessage } = useSessionStore();
@@ -101,6 +103,8 @@ export default function App() {
       {statusbarOpen && <Statusbar />}
       <CommandPalette />
       <ToastContainer />
+      <NewChatModal />
+      <NewAgentModal />
     </div>
   );
 }
