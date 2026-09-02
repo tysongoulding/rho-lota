@@ -19,6 +19,13 @@ export type SettingsTab =
   | "theme"
   | "billing";
 
+export type CustomiseTab =
+  | "tokens"
+  | "rules"
+  | "skills"
+  | "mcps"
+  | "plugins";
+
 export type WorkbenchTab = "diff" | "thinking" | "file" | "json";
 
 interface UiState {
@@ -31,6 +38,7 @@ interface UiState {
 
   activeView: ActiveView;
   activeSettingsTab: SettingsTab;
+  activeCustomiseTab: CustomiseTab;
   activeWorkbenchTab: WorkbenchTab;
   selectedSessionId: string | null;
 
@@ -47,6 +55,7 @@ interface UiState {
 
   setActiveView: (view: ActiveView) => void;
   setActiveSettingsTab: (tab: SettingsTab) => void;
+  setActiveCustomiseTab: (tab: CustomiseTab) => void;
   setActiveWorkbenchTab: (tab: WorkbenchTab) => void;
   setSelectedSessionId: (id: string | null) => void;
 }
@@ -61,6 +70,7 @@ export const useUiStore = create<UiState>((set) => ({
 
   activeView: "chat",
   activeSettingsTab: "general",
+  activeCustomiseTab: "tokens",
   activeWorkbenchTab: "diff",
   selectedSessionId: null,
 
@@ -77,6 +87,7 @@ export const useUiStore = create<UiState>((set) => ({
 
   setActiveView: (view: ActiveView) => set({ activeView: view }),
   setActiveSettingsTab: (tab: SettingsTab) => set({ activeSettingsTab: tab }),
+  setActiveCustomiseTab: (tab: CustomiseTab) => set({ activeCustomiseTab: tab }),
   setActiveWorkbenchTab: (tab: WorkbenchTab) => set({ activeWorkbenchTab: tab }),
   setSelectedSessionId: (id: string | null) => set({ selectedSessionId: id }),
 }));
