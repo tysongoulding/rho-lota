@@ -18,15 +18,22 @@ import {
 } from "lucide-react";
 
 export function Titlebar() {
-  const { sessionInfo, usage, turnPhase } = useSessionStore();
+  const { sessionInfo, usage, turnPhase, resetSession } = useSessionStore();
   const {
     toggleSidebar,
     toggleWorkbench,
     toggleStatusbar,
+    setActiveView,
     workbenchOpen,
     sidebarOpen,
     statusbarOpen,
   } = useUiStore();
+
+  const handleGoHome = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setActiveView("chat");
+    resetSession();
+  };
 
   const handleHeaderMouseDown = (e: React.MouseEvent) => {
     if (e.buttons === 1 && e.detail === 1) {
@@ -110,13 +117,19 @@ export function Titlebar() {
     >
       {/* Left Section: Logo & Name -> Sidebar Toggle -> Statusbar Toggle */}
       <div className="flex items-center space-x-1.5 h-full z-10" data-tauri-drag-region>
-        {/* Logo & Company Name */}
-        <div className="flex items-center space-x-2 mr-1">
-          <div className="flex items-center justify-center w-5 h-5 rounded bg-blue-600/20 text-blue-400 font-bold text-xs">
+        {/* Logo & Company Name -> Click to Go Home */}
+        <button
+          onClick={handleGoHome}
+          className="flex items-center space-x-2 mr-1 hover:opacity-85 transition cursor-pointer group p-0.5 rounded"
+          title="Go to Home & Start New Chat"
+        >
+          <div className="flex items-center justify-center w-5 h-5 rounded bg-blue-600/20 text-blue-400 font-bold text-xs group-hover:scale-105 transition">
             ρ
           </div>
-          <span className="font-semibold text-white tracking-wide">Rho Lota</span>
-        </div>
+          <span className="font-semibold text-white tracking-wide group-hover:text-[#58a6ff] transition">
+            Rho Lota
+          </span>
+        </button>
 
         {/* Sidebar Toggle Button */}
         <button

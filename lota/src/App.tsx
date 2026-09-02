@@ -23,6 +23,7 @@ import { CommandPalette } from "./components/palette/CommandPalette";
 import { ToastContainer } from "./components/common/ToastContainer";
 import { NewChatModal } from "./components/modals/NewChatModal";
 import { NewAgentModal } from "./components/modals/NewAgentModal";
+import { HomeHeroView } from "./components/home/HomeHeroView";
 
 export default function App() {
   const { messages, isRunning, addUserMessage } = useSessionStore();
@@ -79,12 +80,16 @@ export default function App() {
 
         <main className="flex-1 flex flex-col bg-[#0d1117] min-w-0 overflow-hidden">
           {activeView === "chat" && (
-            <>
-              <VirtualizedMessageFeed messages={messages} />
-              <ApprovalModal />
-              <QueueBadge />
-              <PromptInput />
-            </>
+            messages.length === 0 ? (
+              <HomeHeroView fullname="Tyson Goulding" />
+            ) : (
+              <>
+                <VirtualizedMessageFeed messages={messages} />
+                <ApprovalModal />
+                <QueueBadge />
+                <PromptInput />
+              </>
+            )
           )}
           {activeView === "files" && <WorkspaceExplorer />}
           {activeView === "customise" && <CustomiseView />}
@@ -93,7 +98,7 @@ export default function App() {
           {activeView === "settings" && <SettingsHubView />}
         </main>
 
-        {activeView === "chat" && <StreamingWorkbench />}
+        {activeView === "chat" && messages.length > 0 && <StreamingWorkbench />}
       </div>
 
       {statusbarOpen && <Statusbar />}
