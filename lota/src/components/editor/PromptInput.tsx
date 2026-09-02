@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { useSessionStore } from "../../store/sessionStore";
 import { useWorkspaceStore } from "../../store/workspaceStore";
+import { useSubagentStore } from "../../store/subagentStore";
 import { useRhoEngine } from "../../hooks/useRhoEngine";
 import { useTurnQueue } from "../../hooks/useTurnQueue";
 import { AutocompleteMenu } from "./AutocompleteMenu";
@@ -14,8 +15,11 @@ export function PromptInput() {
 
   const { isRunning, addUserMessage } = useSessionStore();
   const { attachedFiles, removeAttachedFile, clearAttachedFiles } = useWorkspaceStore();
+  const { subagents, activeChatAgentId } = useSubagentStore();
   const { prompt, abort } = useRhoEngine();
   const { enqueue } = useTurnQueue();
+
+  const activeAgent = subagents.find((a) => a.id === activeChatAgentId);
 
   const handleSend = useCallback(async () => {
     let content = text.trim();
@@ -110,6 +114,8 @@ export function PromptInput() {
           placeholder={
             isRunning
               ? "Type to queue follow-up message..."
+              : activeAgent
+              ? `Ask ${activeAgent.name} anything, or use @file / /command...`
               : "Ask Rho anything, or use @file / /command..."
           }
           rows={Math.min(6, Math.max(1, text.split("\n").length))}

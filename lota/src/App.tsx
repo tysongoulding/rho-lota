@@ -24,13 +24,18 @@ import { ToastContainer } from "./components/common/ToastContainer";
 import { NewChatModal } from "./components/modals/NewChatModal";
 import { NewAgentModal } from "./components/modals/NewAgentModal";
 import { HomeHeroView } from "./components/home/HomeHeroView";
+import { useSubagentStore } from "./store/subagentStore";
+import { Bot } from "lucide-react";
 
 export default function App() {
   const { messages, isRunning, addUserMessage } = useSessionStore();
   const { activeView, statusbarOpen } = useUiStore();
+  const { subagents, activeChatAgentId } = useSubagentStore();
   const { mode } = useThemeStore();
   const { prompt } = useRhoEngine();
   const { queue, dequeue } = useTurnQueue();
+
+  const activeAgent = subagents.find((a) => a.id === activeChatAgentId);
 
   // Register global keyboard shortcuts & drag-and-drop file attachment
   useGlobalShortcuts();
@@ -84,6 +89,27 @@ export default function App() {
               <HomeHeroView fullname="Tyson Goulding" />
             ) : (
               <>
+                {activeAgent && (
+                  <div className="flex items-center justify-between px-4 py-2 bg-[#161b22] border-b border-[#30363d] text-xs select-none flex-shrink-0">
+                    <div className="flex items-center space-x-2">
+                      <div className="p-1 rounded-md bg-purple-500/10 border border-purple-500/20 text-purple-400">
+                        <Bot className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="flex items-center space-x-1.5">
+                        <span className="font-semibold text-white font-mono">{activeAgent.name}</span>
+                        <span className="text-[#8b949e] text-[11px]">• {activeAgent.role}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2 text-[10px] text-[#8b949e]">
+                      <span className="px-2 py-0.5 rounded bg-[#0d1117] border border-[#30363d] font-mono">
+                        Model: {activeAgent.model}
+                      </span>
+                      <span className="px-2 py-0.5 rounded bg-[#0d1117] border border-[#30363d] font-mono uppercase">
+                        Workspace: {activeAgent.workspaceMode}
+                      </span>
+                    </div>
+                  </div>
+                )}
                 <VirtualizedMessageFeed messages={messages} />
                 <ApprovalModal />
                 <QueueBadge />

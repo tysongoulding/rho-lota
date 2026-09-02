@@ -70,15 +70,15 @@ export function Sidebar() {
 
   if (!sidebarOpen) return null;
 
-  // 1. Direct Chat with Sub-Agent
-  const handleChatWithSubagent = (agent: SubagentDefinition) => {
+  // 1. Direct Chat with Agent
+  const handleChatWithAgent = (agent: SubagentDefinition) => {
     setActiveChatAgentId(agent.id);
-    // Create or switch to dedicated chat with this agent
-    const newChatId = createChat(`@${agent.name} • ${agent.role}`);
+    // Create or switch to dedicated chat with this direct agent
+    const newChatId = createChat(`${agent.name} • ${agent.role}`);
     switchChat(newChatId);
     resetSession();
     setActiveView("chat");
-    addToast(`Started chat with agent: ${agent.name}`, "info");
+    addToast(`Chatting directly with ${agent.name}`, "info");
   };
 
   const handleSelectChat = (chatId: string) => {
@@ -93,13 +93,13 @@ export function Sidebar() {
     addToast(`Deleted chat: ${chatTitle}`, "info");
   };
 
-  // Subagent Actions
+  // Agent Actions
   const handleClone = (e: React.MouseEvent, agent: SubagentDefinition) => {
     e.stopPropagation();
     setMenuSubagentId(null);
     const cloned = cloneSubagent(agent.id);
     if (cloned) {
-      addToast(`Cloned sub-agent to: ${cloned.name}`, "success");
+      addToast(`Cloned agent to: ${cloned.name}`, "success");
     }
   };
 
@@ -115,15 +115,15 @@ export function Sidebar() {
     setRenamingSubagent(agent);
   };
 
-  const handleDeleteSubagent = (e: React.MouseEvent, agent: SubagentDefinition) => {
+  const handleDeleteAgent = (e: React.MouseEvent, agent: SubagentDefinition) => {
     e.stopPropagation();
     setMenuSubagentId(null);
     deleteSubagent(agent.id);
-    addToast(`Deleted sub-agent: ${agent.name}`, "info");
+    addToast(`Deleted agent: ${agent.name}`, "info");
   };
 
-  // Filter subagents and chats by search query
-  const filteredSubagents = subagents.filter(
+  // Filter agents and chats by search query
+  const filteredAgents = subagents.filter(
     (a) =>
       a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       a.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -138,19 +138,22 @@ export function Sidebar() {
     <aside className="w-64 border-r border-[#30363d] bg-[#0d1117] flex flex-col h-full text-xs select-none flex-shrink-0">
       {/* Top Action Buttons */}
       <div className="p-3 border-b border-[#30363d] space-y-2 flex-shrink-0">
-        {/* New Standalone Sub-Agent Button */}
+        {/* New Agent Button */}
         <button
           onClick={() => setNewAgentModalOpen(true)}
           className="w-full flex items-center justify-center space-x-2 py-1.5 px-3 bg-[#161b22] hover:bg-[#21262d] text-white rounded-lg border border-[#30363d] font-medium transition"
-          title="Create a new Standalone Sub-Agent"
+          title="Create a new standalone Agent"
         >
           <User className="w-4 h-4 text-purple-400" />
-          <span>New Sub-Agent</span>
+          <span>New Agent</span>
         </button>
 
         {/* New Chat Button */}
         <button
-          onClick={() => setNewChatModalOpen(true)}
+          onClick={() => {
+            setActiveChatAgentId(null);
+            setNewChatModalOpen(true);
+          }}
           className="w-full flex items-center justify-center space-x-2 py-1.5 px-3 bg-[#21262d] hover:bg-[#30363d] text-white rounded-lg border border-[#30363d] font-medium transition"
           title="Start a new conversation (Ctrl+Shift+N)"
         >
@@ -212,7 +215,7 @@ export function Sidebar() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search sub-agents & chats..."
+            placeholder="Search agents & chats..."
             className="w-full bg-[#161b22] border border-[#30363d] rounded-lg pl-8 pr-7 py-1 text-white text-[11px] placeholder-[#8b949e] focus:border-[#58a6ff] outline-none transition"
           />
           {searchQuery && (
@@ -228,7 +231,7 @@ export function Sidebar() {
 
       {/* Accordion Lists */}
       <div className="flex-1 overflow-y-auto p-2 pt-0 space-y-3">
-        {/* Agents > Standalone Sub-Agents Section */}
+        {/* Agents Section */}
         <div className="space-y-1">
           <div
             onClick={() => setAgentsExpanded(!agentsExpanded)}
@@ -240,8 +243,8 @@ export function Sidebar() {
               ) : (
                 <ChevronRight className="w-3.5 h-3.5 text-[#8b949e]" />
               )}
-              <span>Sub-Agents</span>
-              <span className="text-[10px] text-[#8b949e] ml-1">({filteredSubagents.length})</span>
+              <span>Agents</span>
+              <span className="text-[10px] font-mono text-[#8b949e] ml-1">({filteredAgents.length})</span>
             </div>
 
             <button
@@ -250,7 +253,7 @@ export function Sidebar() {
                 setNewAgentModalOpen(true);
               }}
               className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-[#21262d] text-[#8b949e] hover:text-white transition"
-              title="Create new sub-agent"
+              title="Create new agent"
             >
               <Plus className="w-3.5 h-3.5" />
             </button>
@@ -258,10 +261,10 @@ export function Sidebar() {
 
           {agentsExpanded && (
             <div className="space-y-0.5 pl-1 animate-in fade-in duration-100">
-              {filteredSubagents.length === 0 ? (
-                <div className="px-2 py-2 text-[10px] text-[#8b949e] italic">No sub-agents found</div>
+              {filteredAgents.length === 0 ? (
+                <div className="px-2 py-2 text-[10px] text-[#8b949e] italic">No agents found</div>
               ) : (
-                filteredSubagents.map((agent) => {
+                filteredAgents.map((agent) => {
                   const isChattingWithThisAgent =
                     activeChatAgentId === agent.id && activeView === "chat";
                   const isMenuOpen = menuSubagentId === agent.id;
@@ -274,8 +277,8 @@ export function Sidebar() {
                           ? "bg-purple-950/40 text-purple-200 border border-purple-800/60"
                           : "text-[#c9d1d9] hover:bg-[#161b22] border border-transparent hover:border-[#30363d]"
                       }`}
-                      onClick={() => handleChatWithSubagent(agent)}
-                      title={`Click to chat with ${agent.name}`}
+                      onClick={() => handleChatWithAgent(agent)}
+                      title={`Chat directly with ${agent.name}`}
                     >
                       {/* Left: Bot Icon + Name & Role */}
                       <div className="flex items-center space-x-2 truncate mr-1">
@@ -354,7 +357,7 @@ export function Sidebar() {
                           <div className="border-t border-[#30363d] my-1" />
 
                           <button
-                            onClick={(e) => handleDeleteSubagent(e, agent)}
+                            onClick={(e) => handleDeleteAgent(e, agent)}
                             className="w-full flex items-center space-x-2 px-3 py-1.5 text-left text-red-400 hover:bg-red-950/40 transition"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -370,7 +373,7 @@ export function Sidebar() {
           )}
         </div>
 
-        {/* Chats > Accordion Section */}
+        {/* Chats Section */}
         <div className="space-y-1">
           <div
             onClick={() => setChatsExpanded(!chatsExpanded)}
@@ -383,12 +386,13 @@ export function Sidebar() {
                 <ChevronRight className="w-3.5 h-3.5 text-[#8b949e]" />
               )}
               <span>Chats</span>
-              <span className="text-[10px] text-[#8b949e] ml-1">({filteredChats.length})</span>
+              <span className="text-[10px] font-mono text-[#8b949e] ml-1">({filteredChats.length})</span>
             </div>
 
             <button
               onClick={(e) => {
                 e.stopPropagation();
+                setActiveChatAgentId(null);
                 setNewChatModalOpen(true);
               }}
               className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-[#21262d] text-[#8b949e] hover:text-white transition"
@@ -473,7 +477,7 @@ export function Sidebar() {
         </div>
       )}
 
-      {/* Standalone Subagent Detail / Edit Modal */}
+      {/* Standalone Agent Detail / Edit Modal */}
       {editingSubagent && (
         <SubagentDetailModal
           subagent={editingSubagent}
@@ -481,7 +485,7 @@ export function Sidebar() {
         />
       )}
 
-      {/* Rename Subagent Modal */}
+      {/* Rename Agent Modal */}
       {renamingSubagent && (
         <RenameSubagentModal
           subagent={renamingSubagent}

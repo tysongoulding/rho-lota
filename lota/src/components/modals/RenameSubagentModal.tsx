@@ -23,11 +23,11 @@ export function RenameSubagentModal({ subagent, onClose }: RenameSubagentModalPr
 
   const handleSave = () => {
     if (!name.trim()) {
-      addToast("Sub-agent name cannot be empty", "error");
+      addToast("Agent name cannot be empty", "error");
       return;
     }
     renameSubagent(subagent.id, name);
-    addToast(`Renamed sub-agent to: ${name.trim()}`, "success");
+    addToast(`Renamed agent to: ${name.trim()}`, "success");
     onClose();
   };
 
@@ -45,7 +45,7 @@ export function RenameSubagentModal({ subagent, onClose }: RenameSubagentModalPr
             <div className="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400">
               <Edit2 className="w-3.5 h-3.5" />
             </div>
-            <span className="font-semibold text-white">Rename Sub-Agent</span>
+            <span className="font-semibold text-white">Rename Agent</span>
           </div>
           <button
             onClick={onClose}
@@ -56,7 +56,7 @@ export function RenameSubagentModal({ subagent, onClose }: RenameSubagentModalPr
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-[10px] font-semibold text-[#8b949e] uppercase">Agent Name / Identifier</label>
+          <label className="text-[10px] font-semibold text-[#8b949e] uppercase">Agent Identifier</label>
           <input
             type="text"
             value={name}

@@ -33,7 +33,7 @@ export function NewAgentModal() {
 
   const handleCreate = () => {
     if (!name.trim()) {
-      addToast("Sub-agent name is required", "error");
+      addToast("Agent name is required", "error");
       return;
     }
 
@@ -42,8 +42,8 @@ export function NewAgentModal() {
     addSubagent({
       name: formattedName,
       role: role.trim() || "Autonomous Specialist",
-      description: description.trim() || "Standalone autonomous worker for specialized tasks.",
-      systemPrompt: systemPrompt.trim() || `You are the ${formattedName} standalone sub-agent.`,
+      description: description.trim() || "Autonomous agent for specialized engineering and workflow tasks.",
+      systemPrompt: systemPrompt.trim() || `You are the ${formattedName} agent.`,
       model,
       workspaceMode,
       enableWriteTools,
@@ -56,7 +56,7 @@ export function NewAgentModal() {
     setRole("");
     setDescription("");
     setSystemPrompt("");
-    addToast(`Created new standalone sub-agent: ${formattedName}`, "success");
+    addToast(`Created new agent: ${formattedName}`, "success");
   };
 
   return (
@@ -75,9 +75,9 @@ export function NewAgentModal() {
               <Bot className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-semibold text-white text-xs">Create Standalone Sub-Agent</h3>
+              <h3 className="font-semibold text-white text-xs">Create Agent</h3>
               <p className="text-[10px] text-[#8b949e]">
-                Define an isolated worker with workspace branching and dedicated tool permissions.
+                Define an agent with workspace branching, model tier, and tool permissions.
               </p>
             </div>
           </div>
@@ -92,7 +92,7 @@ export function NewAgentModal() {
 
         {/* Modal Body Form */}
         <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
-          {/* Sub-Agent Name & Role */}
+          {/* Agent Name & Role */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="text-[10px] font-semibold text-[#8b949e] uppercase">Agent Identifier</label>
@@ -126,7 +126,7 @@ export function NewAgentModal() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="w-full bg-[#0d1117] border border-[#30363d] rounded-xl p-3 text-white outline-none focus:border-purple-500 resize-none text-xs"
-              placeholder="What specialized tasks does this standalone agent execute?"
+              placeholder="What specialized tasks does this agent execute?"
             />
           </div>
 
@@ -213,7 +213,7 @@ export function NewAgentModal() {
               >
                 <div className="flex items-center space-x-1.5">
                   <Network className="w-3.5 h-3.5 text-blue-400" />
-                  <span className="text-[11px]">Subagent Tools</span>
+                  <span className="text-[11px]">Agent Spawner</span>
                 </div>
                 {enableSubagentTools && <Check className="w-3 h-3 text-blue-400" />}
               </button>
@@ -223,7 +223,7 @@ export function NewAgentModal() {
           {/* System Prompt */}
           <div className="space-y-1">
             <label className="text-[10px] font-semibold text-[#8b949e] uppercase">
-              Standalone Subagent System Prompt
+              Agent System Prompt
             </label>
             <textarea
               rows={4}
@@ -248,7 +248,7 @@ export function NewAgentModal() {
             className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold transition flex items-center space-x-1.5 shadow"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Create Sub-Agent</span>
+            <span>Create Agent</span>
           </button>
         </div>
       </div>

@@ -61,25 +61,25 @@ export function SubagentDetailModal({ subagent, onClose }: SubagentDetailModalPr
       enableMcpTools,
       enableSubagentTools,
     });
-    addToast(`Saved changes to subagent: ${subagent.name}`, "success");
+    addToast(`Saved changes to agent: ${subagent.name}`, "success");
     onClose();
   };
 
   const handleInvoke = async () => {
     setIsInvoking(true);
-    setSubagentState(subagent.id, "running", "Executing assigned subagent task...");
-    addToast(`Invoked standalone subagent: ${subagent.name}`, "info");
+    setSubagentState(subagent.id, "running", "Executing assigned task...");
+    addToast(`Invoked agent: ${subagent.name}`, "info");
 
     setTimeout(() => {
       setSubagentState(subagent.id, "idle", "Task completed successfully");
       setIsInvoking(false);
-      addToast(`Subagent ${subagent.name} finished task`, "success");
+      addToast(`Agent ${subagent.name} finished task`, "success");
     }, 2500);
   };
 
   const handleDelete = () => {
     deleteSubagent(subagent.id);
-    addToast(`Deleted subagent: ${subagent.name}`, "info");
+    addToast(`Deleted agent: ${subagent.name}`, "info");
     onClose();
   };
 
@@ -102,7 +102,7 @@ export function SubagentDetailModal({ subagent, onClose }: SubagentDetailModalPr
               <div className="flex items-center space-x-2">
                 <span className="font-semibold text-white font-mono text-xs">{subagent.name}</span>
                 <span className="px-2 py-0.2 rounded-full text-[10px] font-mono bg-[#161b22] border border-purple-500/30 text-purple-300">
-                  Standalone Sub-Agent
+                  Agent
                 </span>
               </div>
               <p className="text-[10px] text-[#8b949e]">{subagent.stateDetail || "Autonomous worker"}</p>
@@ -230,17 +230,17 @@ export function SubagentDetailModal({ subagent, onClose }: SubagentDetailModalPr
               >
                 <div className="flex items-center space-x-1.5">
                   <Network className="w-3.5 h-3.5 text-blue-400" />
-                  <span className="text-[11px]">Subagent Spawner</span>
+                  <span className="text-[11px]">Agent Spawner</span>
                 </div>
                 {enableSubagentTools && <Check className="w-3 h-3 text-blue-400" />}
               </button>
             </div>
           </div>
 
-          {/* Standalone System Prompt */}
+          {/* System Prompt */}
           <div className="space-y-1">
             <label className="text-[10px] font-semibold text-[#8b949e] uppercase">
-              Standalone Subagent System Prompt
+              Agent System Prompt
             </label>
             <textarea
               rows={4}
