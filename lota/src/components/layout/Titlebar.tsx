@@ -1,10 +1,61 @@
-import { useSessionStore } from "../../store/sessionStore";
+import { useSessionStore, TurnPhase } from "../../store/sessionStore";
 import { useUiStore } from "../../store/uiStore";
-import { PanelLeft, PanelRight, Cpu, Activity } from "lucide-react";
+import {
+  PanelLeft,
+  PanelRight,
+  Cpu,
+  Activity,
+  Brain,
+  Wrench,
+  ShieldAlert,
+  AlertCircle,
+} from "lucide-react";
 
 export function Titlebar() {
-  const { sessionInfo, usage, isRunning } = useSessionStore();
+  const { sessionInfo, usage, turnPhase } = useSessionStore();
   const { toggleSidebar, toggleWorkbench, workbenchOpen } = useUiStore();
+
+  const renderStatusPill = (phase: TurnPhase) => {
+    switch (phase) {
+      case "thinking":
+        return (
+          <div className="flex items-center space-x-1.5 text-purple-400 bg-purple-950/30 px-2 py-0.5 rounded-full border border-purple-800/40 animate-pulse">
+            <Brain className="w-3.5 h-3.5" />
+            <span>Thinking...</span>
+          </div>
+        );
+      case "streaming_text":
+        return (
+          <div className="flex items-center space-x-1.5 text-blue-400 bg-blue-950/30 px-2 py-0.5 rounded-full border border-blue-800/40 animate-pulse">
+            <Activity className="w-3.5 h-3.5" />
+            <span>Streaming...</span>
+          </div>
+        );
+      case "awaiting_approval":
+        return (
+          <div className="flex items-center space-x-1.5 text-amber-400 bg-amber-950/30 px-2 py-0.5 rounded-full border border-amber-800/40 animate-bounce">
+            <ShieldAlert className="w-3.5 h-3.5" />
+            <span>Waiting Approval</span>
+          </div>
+        );
+      case "executing_tool":
+        return (
+          <div className="flex items-center space-x-1.5 text-yellow-400 bg-yellow-950/30 px-2 py-0.5 rounded-full border border-yellow-800/40 animate-pulse">
+            <Wrench className="w-3.5 h-3.5 animate-spin" />
+            <span>Running Tool...</span>
+          </div>
+        );
+      case "error":
+        return (
+          <div className="flex items-center space-x-1.5 text-red-400 bg-red-950/30 px-2 py-0.5 rounded-full border border-red-800/40">
+            <AlertCircle className="w-3.5 h-3.5" />
+            <span>Error</span>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <header
@@ -33,12 +84,7 @@ export function Titlebar() {
       </div>
 
       <div className="flex items-center space-x-3 text-[#8b949e]">
-        {isRunning && (
-          <div className="flex items-center space-x-1 text-blue-400 animate-pulse">
-            <Activity className="w-3.5 h-3.5" />
-            <span>Running</span>
-          </div>
-        )}
+        {renderStatusPill(turnPhase)}
 
         {usage.contextPercent !== undefined && (
           <div className="flex items-center space-x-1">

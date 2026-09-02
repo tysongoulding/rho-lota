@@ -1,7 +1,16 @@
 import { create } from "zustand";
 import { RpcEvent } from "../lib/protocol";
 
+export type TurnPhase =
+  | "idle"
+  | "thinking"
+  | "streaming_text"
+  | "awaiting_approval"
+  | "executing_tool"
+  | "error";
+
 export interface ToolCallData {
+  callId: string;
   tool: string;
   arguments: Record<string, unknown>;
   output?: string;
@@ -37,10 +46,12 @@ export interface ApprovalRequest {
 }
 
 interface SessionState {
+  turnPhase: TurnPhase;
   isRunning: boolean;
   sessionInfo: SessionInfo;
   usage: UsageInfo;
   messages: MessageItem[];
+  rawEvents: RpcEvent[];
   pendingApproval: ApprovalRequest | null;
 
   // Actions
@@ -53,14 +64,18 @@ interface SessionState {
 }
 
 export const useSessionStore = create<SessionState>((set) => ({
+  turnPhase: "idle",
   isRunning: false,
   sessionInfo: {},
   usage: {},
   messages: [],
+  rawEvents: [],
   pendingApproval: null,
 
   addUserMessage: (content: string) =>
     set((state) => ({
+      turnPhase: "thinking",
+      isRunning: true,
       messages: [
         ...state.messages,
         { id: `user-${Date.now()}`, role: "user", content },
@@ -76,7 +91,7 @@ export const useSessionStore = create<SessionState>((set) => ({
         last.content += chunk;
         messages[messages.length - 1] = last;
       }
-      return { messages };
+      return { messages, turnPhase: "streaming_text" };
     }),
 
   appendBufferedReasoning: (chunk: string) =>
@@ -88,25 +103,31 @@ export const useSessionStore = create<SessionState>((set) => ({
         last.reasoning = (last.reasoning || "") + chunk;
         messages[messages.length - 1] = last;
       }
-      return { messages };
+      return { messages, turnPhase: "thinking" };
     }),
 
-  clearPendingApproval: () => set({ pendingApproval: null }),
+  clearPendingApproval: () =>
+    set({ pendingApproval: null, turnPhase: "executing_tool" }),
 
   resetSession: () =>
     set({
+      turnPhase: "idle",
       isRunning: false,
       sessionInfo: {},
       usage: {},
       messages: [],
+      rawEvents: [],
       pendingApproval: null,
     }),
 
   handleEvent: (event: RpcEvent) =>
     set((state) => {
+      const rawEvents = [...state.rawEvents, event];
+
       switch (event.type) {
         case "session_start":
           return {
+            rawEvents,
             sessionInfo: {
               id: event.session_id,
               model: event.model,
@@ -116,7 +137,9 @@ export const useSessionStore = create<SessionState>((set) => ({
 
         case "turn_start":
           return {
+            rawEvents,
             isRunning: true,
+            turnPhase: "thinking",
             messages: [
               ...state.messages,
               {
@@ -128,29 +151,43 @@ export const useSessionStore = create<SessionState>((set) => ({
           };
 
         case "text_chunk": {
-          if (state.messages.length === 0) return state;
+          if (state.messages.length === 0) return { rawEvents, turnPhase: "streaming_text" };
           const messages = [...state.messages];
           const last = { ...messages[messages.length - 1] };
           if (last.role === "assistant") {
             last.content += event.content;
             messages[messages.length - 1] = last;
           }
-          return { messages };
+          return { messages, rawEvents, turnPhase: "streaming_text" };
         }
 
         case "reasoning_chunk": {
-          if (state.messages.length === 0) return state;
+          if (state.messages.length === 0) return { rawEvents, turnPhase: "thinking" };
           const messages = [...state.messages];
           const last = { ...messages[messages.length - 1] };
           if (last.role === "assistant") {
             last.reasoning = (last.reasoning || "") + event.content;
             messages[messages.length - 1] = last;
           }
-          return { messages };
+          return { messages, rawEvents, turnPhase: "thinking" };
         }
+
+        case "tool_approval_request":
+          return {
+            rawEvents,
+            turnPhase: "awaiting_approval",
+            pendingApproval: {
+              approvalId: event.approval_id,
+              tool: event.tool,
+              arguments: event.arguments,
+              description: event.description,
+            },
+          };
 
         case "tool_call_start":
           return {
+            rawEvents,
+            turnPhase: "executing_tool",
             messages: [
               ...state.messages,
               {
@@ -158,6 +195,7 @@ export const useSessionStore = create<SessionState>((set) => ({
                 role: "tool",
                 content: "",
                 toolCall: {
+                  callId: event.call_id,
                   tool: event.tool,
                   arguments: event.arguments,
                 },
@@ -167,6 +205,8 @@ export const useSessionStore = create<SessionState>((set) => ({
 
         case "tool_call_result":
           return {
+            rawEvents,
+            turnPhase: "streaming_text",
             messages: state.messages.map((msg) =>
               msg.id === `tool-${event.call_id}`
                 ? {
@@ -182,18 +222,9 @@ export const useSessionStore = create<SessionState>((set) => ({
             ),
           };
 
-        case "tool_approval_request":
-          return {
-            pendingApproval: {
-              approvalId: event.approval_id,
-              tool: event.tool,
-              arguments: event.arguments,
-              description: event.description,
-            },
-          };
-
         case "usage_update":
           return {
+            rawEvents,
             usage: {
               inputTokens: event.input_tokens,
               outputTokens: event.output_tokens,
@@ -202,11 +233,17 @@ export const useSessionStore = create<SessionState>((set) => ({
           };
 
         case "turn_end":
-          return { isRunning: false };
+          return {
+            rawEvents,
+            isRunning: false,
+            turnPhase: "idle",
+          };
 
         case "error":
           return {
+            rawEvents,
             isRunning: false,
+            turnPhase: "error",
             messages: [
               ...state.messages,
               {
@@ -218,7 +255,7 @@ export const useSessionStore = create<SessionState>((set) => ({
           };
 
         default:
-          return state;
+          return { rawEvents };
       }
     }),
 }));

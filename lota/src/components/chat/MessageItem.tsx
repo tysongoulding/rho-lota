@@ -1,8 +1,7 @@
 import { MessageItem as MessageItemType } from "../../store/sessionStore";
 import { ThinkingBlock } from "./ThinkingBlock";
-import { ToolCallBlock } from "./ToolCallBlock";
+import { ToolActionCard } from "../cards/ToolActionCard";
 import { CodeBlock } from "./CodeBlock";
-import { DiffViewer } from "./DiffViewer";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
@@ -24,28 +23,7 @@ export function MessageItem({ message }: MessageItemProps) {
   }
 
   if (message.role === "tool" && message.toolCall) {
-    const isEditTool = message.toolCall.tool === "edit";
-    const args = message.toolCall.arguments;
-
-    if (
-      isEditTool &&
-      typeof args.target_content === "string" &&
-      typeof args.replacement_content === "string"
-    ) {
-      return (
-        <div className="my-2">
-          <ToolCallBlock toolCall={message.toolCall} />
-          <DiffViewer
-            filePath={typeof args.file_path === "string" ? args.file_path : undefined}
-            targetContent={args.target_content}
-            replacementContent={args.replacement_content}
-            startLine={typeof args.start_line === "number" ? args.start_line : 1}
-          />
-        </div>
-      );
-    }
-
-    return <ToolCallBlock toolCall={message.toolCall} />;
+    return <ToolActionCard toolCall={message.toolCall} />;
   }
 
   if (message.role === "system") {
