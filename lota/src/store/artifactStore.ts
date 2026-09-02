@@ -14,14 +14,177 @@ export interface ArtifactItem {
 
 const DEFAULT_ARTIFACTS: ArtifactItem[] = [
   {
+    id: "art-mermaid-1",
+    name: "system_fsm_architecture.mmd",
+    extension: "mmd",
+    language: "mermaid",
+    summary: "Interactive Mermaid state transition diagram illustrating the turn execution FSM and TDD red-green cycles.",
+    userFacing: true,
+    createdAt: new Date(Date.now() - 3600000 * 1).toISOString(),
+    updatedAt: new Date(Date.now() - 3600000 * 1).toISOString(),
+    content: `stateDiagram-v2
+    [*] --> Idle
+    Idle --> UserTurnQueued : User Prompt Submit
+    UserTurnQueued --> ContextTokenizing : Rig AST Token Counting
+    ContextTokenizing --> LLMInference : Stream SSE Request
+
+    state LLMInference {
+        [*] --> ReasoningStream
+        ReasoningStream --> ToolCallDecision : Grammar Match
+        ReasoningStream --> DirectOutput : Code Solution
+    }
+
+    ToolCallDecision --> NativeToolExec : Sandboxed Task
+    ToolCallDecision --> McpBridgeExec : MCP Sidecar Protocol
+
+    NativeToolExec --> RedGreenTddGate : Verify Test
+    McpBridgeExec --> RedGreenTddGate : Verify Test
+
+    state RedGreenTddGate {
+        [*] --> RedFailedTest : Prove Bug
+        RedFailedTest --> GreenPassedTest : Minimal Fix
+    }
+
+    RedGreenTddGate --> DoneTurn : Verification OK
+    DirectOutput --> DoneTurn : Response Streamed
+    DoneTurn --> Idle : Ready for Input`,
+  },
+  {
+    id: "art-mermaid-2",
+    name: "turn_sequence_flow.mmd",
+    extension: "mmd",
+    language: "mermaid",
+    summary: "Mermaid sequence flow diagram illustrating client-to-engine IPC pipes and MCP tool dispatch.",
+    userFacing: true,
+    createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+    updatedAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+    content: `sequenceDiagram
+    autonumber
+    actor User as User / Developer
+    participant UI as React LotA UI
+    participant FSM as Rust Tokio Engine
+    participant LLM as Claude-3.7-Sonnet
+    participant MCP as MCP Sidecar Daemon
+
+    User->>UI: Types Prompt / Attaches Files
+    UI->>FSM: JSON-RPC over Socket (Turn Request)
+    FSM->>LLM: Stream Preamble + Active Rules + Context
+    LLM-->>FSM: Stream SSE Reasoning Chunks
+    FSM-->>UI: Live Stream to Workbench Feed
+    LLM->>FSM: Tool Call Request (create_pull_request)
+    FSM->>MCP: Dispatch JSON Schema
+    MCP-->>FSM: Tool Output Success
+    FSM->>LLM: Append Tool Result to Turns
+    LLM-->>FSM: Final Markdown Summary
+    FSM-->>UI: Turn Complete Signal (Done)`,
+  },
+  {
+    id: "art-drawio",
+    name: "cloud_infrastructure.drawio",
+    extension: "drawio",
+    language: "xml",
+    summary: "Draw.io vector architecture model defining Kubernetes clusters, Redis turn queues, and Tokio microservices.",
+    userFacing: true,
+    createdAt: new Date(Date.now() - 3600000 * 3).toISOString(),
+    updatedAt: new Date(Date.now() - 3600000 * 3).toISOString(),
+    content: `<mxfile host="Electron" modified="2026-09-02T16:00:00.000Z" agent="Rho-Lota/1.0" version="24.1.0">
+  <diagram id="rho-topology" name="System Infrastructure">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="850">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="client" value="React LotA Frontend&#xa;(Vite / Tailwind / Zustand)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1f6feb;strokeColor=#58a6ff;fontColor=#ffffff;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="200" width="180" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="engine" value="Rust rho-engine&#xa;(Tokio / Rig Core / FSM)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#8957e5;strokeColor=#d2a8ff;fontColor=#ffffff;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="450" y="200" width="200" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="mcp" value="MCP Cluster&#xa;(GitHub, Context-Mode)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#238636;strokeColor=#3fb950;fontColor=#ffffff;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="800" y="200" width="180" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#58a6ff;strokeWidth=3;" edge="1" parent="1" source="client" target="engine">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#d2a8ff;strokeWidth=3;" edge="1" parent="1" source="engine" target="mcp">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>`,
+  },
+  {
+    id: "art-slides",
+    name: "q3_product_deck.deck",
+    extension: "deck",
+    language: "markdown",
+    summary: "5-slide interactive presentation deck covering product architecture, performance benchmarks, and delivery roadmap.",
+    userFacing: true,
+    createdAt: new Date(Date.now() - 3600000 * 4).toISOString(),
+    updatedAt: new Date(Date.now() - 3600000 * 4).toISOString(),
+    content: `# Rho Lota Studio 2.0
+### Autonomous Multi-Agent Engineering Environment
+
+Powered by Rust \`rho-engine\` & Rig Core
+
+> [!NOTE]
+> High-performance developer cockpit with desktop MarkView, live diagrams, and interactive HTML sandboxes.
+
+---
+
+# The Problem & Bottlenecks
+
+### Traditional AI Assistant Limitations
+- **Context Bleed**: Bloated conversational histories cause memory compaction crashes.
+- **Manual Verification**: Inline hallucinations ship unverified code regressions.
+- **Fragmented Tooling**: Disjointed terminals, external browsers, and diagram viewers.
+
+---
+
+# Architecture & Engine Design
+
+\`\`\`rust
+// High-throughput Tokio event loop with zero-copy stream buffers
+pub struct AsyncEventLoop {
+    tx: Sender<StreamChunk>,
+    rx: Option<Receiver<StreamChunk>>,
+}
+\`\`\`
+
+- **Zero-Latency SSE**: Direct Unix domain socket pipe from Rust core to React front-end.
+- **Strict Red-First TDD**: Autonomous implementer must prove red failures before green code edits.
+
+---
+
+# Performance Benchmarks
+
+| Metric | Rho Lota v2 | Traditional CLI | Improvement |
+| :--- | :---: | :---: | :---: |
+| **Startup Token Overhead** | \`3,800 tok\` | 18,500 tok | **79% reduction** |
+| **Streaming Latency** | \`18.4 ms\` | 110.0 ms | **6x faster** |
+| **Test Feedback** | \`cargo nextest\` | Sequential | **4.2x speedup** |
+
+---
+
+# Q3 Engineering Roadmap
+
+- [x] **Universal AI Agent Configuration Template** (7-Part schema)
+- [x] **MarkView Desktop Engine** with Rust syntax & GitHub alerts
+- [x] **Interactive Diagrams & Slide Deck Presentations** (Mermaid / Draw.io)
+- [ ] **Daemon Plugin SDK hot-reloading** over shared memory IPC
+
+> [!TIP]
+> Press \`ArrowRight\` (→) or \`ArrowLeft\` (←) on your keyboard to navigate between slides!`,
+  },
+  {
     id: "art-rust",
     name: "rust_async_engine.md",
     extension: "md",
     language: "markdown",
     summary: "Rust asynchronous Tokio event bus, zero-copy buffer pipeline, and GitHub alerts specification.",
     userFacing: true,
-    createdAt: new Date(Date.now() - 3600000 * 1).toISOString(),
-    updatedAt: new Date(Date.now() - 3600000 * 1).toISOString(),
+    createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
+    updatedAt: new Date(Date.now() - 3600000 * 5).toISOString(),
     content: `# High-Performance Rust Asynchronous Pipeline
 
 A high-throughput Tokio event loop and state machine architecture powering Rho Lota.
@@ -93,8 +256,8 @@ $$C_{\text{turn}} = \sum_{i=1}^{N} \left( T_{\text{input}}^{(i)} \cdot R_{\text{
     language: "html",
     summary: "Live interactive telemetry dashboard with responsive gauges, metrics cards, and dark theme CSS.",
     userFacing: true,
-    createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-    updatedAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+    createdAt: new Date(Date.now() - 3600000 * 6).toISOString(),
+    updatedAt: new Date(Date.now() - 3600000 * 6).toISOString(),
     content: `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -104,7 +267,6 @@ $$C_{\text{turn}} = \sum_{i=1}^{N} \left( T_{\text{input}}^{(i)} \cdot R_{\text{
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body { background-color: #0d1117; color: #c9d1d9; font-family: ui-sans-serif, system-ui, sans-serif; }
-    .gauge-circle { transform: rotate(-90deg); transform-origin: 50% 50%; }
   </style>
 </head>
 <body class="p-6">
@@ -122,7 +284,6 @@ $$C_{\text{turn}} = \sum_{i=1}^{N} \left( T_{\text{input}}^{(i)} \cdot R_{\text{
       </div>
     </header>
 
-    <!-- Metrics Grid -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div class="bg-[#161b22] border border-[#30363d] p-4 rounded-xl">
         <div class="text-xs text-gray-400">Context Window Used</div>
@@ -144,29 +305,7 @@ $$C_{\text{turn}} = \sum_{i=1}^{N} \left( T_{\text{input}}^{(i)} \cdot R_{\text{
         <div class="text-[11px] text-gray-400 mt-2">Rate card: $3.00/1M input</div>
       </div>
     </div>
-
-    <!-- Interactive Counter Test -->
-    <div class="bg-[#161b22] border border-[#30363d] p-5 rounded-xl space-y-3">
-      <h3 class="text-sm font-semibold text-white">Live Interactivity Test</h3>
-      <p class="text-xs text-gray-400">Click below to test event execution inside the sandbox iframe:</p>
-      <div class="flex items-center gap-3">
-        <button id="counterBtn" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold transition">
-          Clicks: <span id="clickCount">0</span>
-        </button>
-        <button onclick="alert('Rho Lota Sandbox Execution Verified!')" class="px-4 py-2 bg-[#21262d] hover:bg-[#30363d] text-white rounded-lg text-xs font-semibold transition">
-          Test Trigger
-        </button>
-      </div>
-    </div>
   </div>
-
-  <script>
-    let count = 0;
-    document.getElementById('counterBtn').addEventListener('click', () => {
-      count++;
-      document.getElementById('clickCount').textContent = count;
-    });
-  </script>
 </body>
 </html>`,
   },
@@ -191,11 +330,9 @@ $$C_{\text{turn}} = \sum_{i=1}^{N} \left( T_{\text{input}}^{(i)} \cdot R_{\text{
   <rect x="70" y="210" width="160" height="50" rx="8" fill="#21262d" stroke="#30363d" />
   <text x="90" y="240" fill="#fff" font-family="sans-serif" font-size="13">Streaming FSM</text>
 
-  <!-- Flow Arrows -->
   <line x1="260" y1="200" x2="500" y2="200" stroke="#007acc" stroke-width="4" stroke-dasharray="6,6" />
   <text x="320" y="185" fill="#007acc" font-family="monospace" font-size="13" font-weight="bold">JSON-RPC / SSE Pipe</text>
 
-  <!-- Rust Engine Box -->
   <rect x="500" y="40" width="260" height="320" rx="16" fill="#161b22" stroke="#8957e5" stroke-width="2" />
   <text x="530" y="80" fill="#d2a8ff" font-family="sans-serif" font-weight="bold" font-size="18">Rust rho-engine</text>
   <text x="530" y="110" fill="#8b949e" font-family="sans-serif" font-size="12">Tokio • Rig Core • MCP Bridge</text>
@@ -225,24 +362,14 @@ $$C_{\text{turn}} = \sum_{i=1}^{N} \left( T_{\text{input}}^{(i)} \cdot R_{\text{
       "name": "Default Light",
       "background": "#F9F9F9",
       "foreground": "#101010",
-      "accent": "#007acc",
-      "sidebarBg": "#f0f2f5"
+      "accent": "#007acc"
     },
     {
       "id": "default-dark",
       "name": "Default Dark",
       "background": "#101010",
       "foreground": "#cccccc",
-      "accent": "#007acc",
-      "sidebarBg": "#0d1117"
-    },
-    {
-      "id": "nord",
-      "name": "Nord Arctic",
-      "background": "#2e3440",
-      "foreground": "#eceff4",
-      "accent": "#88c0d0",
-      "sidebarBg": "#242933"
+      "accent": "#007acc"
     }
   ]
 }`,
@@ -263,21 +390,8 @@ CREATE TABLE IF NOT EXISTS session_nodes (
     session_title VARCHAR(255) NOT NULL,
     active_persona_id VARCHAR(64) NOT NULL,
     total_tokens_used INTEGER DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS turn_events (
-    id VARCHAR(64) PRIMARY KEY,
-    session_id VARCHAR(64) NOT NULL REFERENCES session_nodes(id) ON DELETE CASCADE,
-    role VARCHAR(32) NOT NULL CHECK (role IN ('user', 'assistant', 'system', 'tool')),
-    content TEXT NOT NULL,
-    tool_call_name VARCHAR(128),
-    execution_time_ms INTEGER,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_turn_events_session ON turn_events(session_id);`,
+);`,
   },
 ];
 
@@ -290,7 +404,7 @@ interface ArtifactState {
   setSelectedArtifactId: (id: string | null) => void;
 }
 
-const STORAGE_KEY = "rho_lota_artifacts_v2";
+const STORAGE_KEY = "rho_lota_artifacts_v3";
 
 const loadInitialArtifacts = (): ArtifactItem[] => {
   try {

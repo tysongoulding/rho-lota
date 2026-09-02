@@ -5,6 +5,7 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 import { highlightCode } from "../../lib/highlighter";
+import { MermaidViewer } from "../diagrams/MermaidViewer";
 import {
   Info,
   Lightbulb,
@@ -310,12 +311,19 @@ export function MarkviewRenderer({ content, showLineNumbers = true }: MarkviewRe
           },
           code({ className, children }) {
             const match = /language-(\w+)/.exec(className || "");
+            const lang = match ? match[1].toLowerCase() : "text";
             const isInline = !match && !String(children).includes("\n");
+            const codeString = String(children).replace(/\n$/, "");
+
+            if (!isInline && lang === "mermaid") {
+              return <MermaidViewer code={codeString} />;
+            }
+
             return (
               <MarkviewCodeBlock
                 inline={isInline}
-                language={match ? match[1] : "text"}
-                code={String(children).replace(/\n$/, "")}
+                language={lang}
+                code={codeString}
                 showLineNumbers={showLineNumbers}
               />
             );

@@ -3,6 +3,9 @@ import { ArtifactItem, useArtifactStore } from "../../store/artifactStore";
 import { useToastStore } from "../../store/toastStore";
 import { MarkviewDocumentView } from "../markdown/MarkviewDocumentView";
 import { MarkviewRenderer } from "../markdown/MarkviewRenderer";
+import { MermaidViewer } from "../diagrams/MermaidViewer";
+import { DrawioViewer } from "../diagrams/DrawioViewer";
+import { SlidesViewer } from "../diagrams/SlidesViewer";
 import {
   X,
   Eye,
@@ -17,6 +20,8 @@ import {
   Database,
   Image as ImageIcon,
   Sparkles,
+  Layers,
+  Presentation,
 } from "lucide-react";
 
 interface ArtifactPreviewModalProps {
@@ -67,12 +72,26 @@ export function ArtifactPreviewModal({
     }
   };
 
-  const getExtensionColor = (ext: string) => {
-    switch (ext.toLowerCase()) {
+  const ext = artifact.extension.toLowerCase();
+  const isMarkdown = ext === "md";
+  const isMermaid = ext === "mmd" || ext === "mermaid";
+  const isDrawio = ext === "drawio" || (ext === "xml" && editedCode.includes("<mxfile"));
+  const isSlides = ext === "deck" || ext === "slides";
+
+  const getExtensionColor = (extension: string) => {
+    switch (extension.toLowerCase()) {
       case "html":
         return "text-orange-400 bg-orange-500/10 border-orange-500/30";
       case "md":
         return "text-blue-400 bg-blue-500/10 border-blue-500/30";
+      case "mmd":
+      case "mermaid":
+        return "text-purple-400 bg-purple-500/10 border-purple-500/30";
+      case "drawio":
+        return "text-amber-400 bg-amber-500/10 border-amber-500/30";
+      case "deck":
+      case "slides":
+        return "text-pink-400 bg-pink-500/10 border-pink-500/30";
       case "svg":
         return "text-purple-400 bg-purple-500/10 border-purple-500/30";
       case "json":
@@ -84,12 +103,20 @@ export function ArtifactPreviewModal({
     }
   };
 
-  const renderFileIcon = (ext: string) => {
-    switch (ext.toLowerCase()) {
+  const renderFileIcon = (extension: string) => {
+    switch (extension.toLowerCase()) {
       case "html":
         return <Globe className="w-4 h-4 text-orange-400" />;
       case "md":
         return <FileText className="w-4 h-4 text-blue-400" />;
+      case "mmd":
+      case "mermaid":
+        return <Layers className="w-4 h-4 text-purple-400" />;
+      case "drawio":
+        return <Layers className="w-4 h-4 text-amber-400" />;
+      case "deck":
+      case "slides":
+        return <Presentation className="w-4 h-4 text-pink-400" />;
       case "svg":
         return <ImageIcon className="w-4 h-4 text-purple-400" />;
       case "sql":
@@ -100,7 +127,46 @@ export function ArtifactPreviewModal({
   };
 
   const lineCount = editedCode.split("\n").length;
-  const isMarkdown = artifact.extension.toLowerCase() === "md";
+
+  const renderLiveViewComponent = () => {
+    if (ext === "html") {
+      return (
+        <iframe
+          title={artifact.name}
+          srcDoc={editedCode}
+          sandbox="allow-scripts allow-same-origin allow-popups"
+          className="w-full h-full bg-white border-0"
+        />
+      );
+    }
+    if (isMermaid) {
+      return <MermaidViewer code={editedCode} />;
+    }
+    if (isDrawio) {
+      return <DrawioViewer content={editedCode} name={editedName} />;
+    }
+    if (isSlides) {
+      return <SlidesViewer content={editedCode} title={editedName} />;
+    }
+    if (isMarkdown) {
+      return <MarkviewDocumentView content={editedCode} title={editedName} />;
+    }
+    if (ext === "svg") {
+      return (
+        <div
+          className="w-full h-full flex items-center justify-center p-8 bg-[#0d1117] overflow-auto"
+          dangerouslySetInnerHTML={{ __html: editedCode }}
+        />
+      );
+    }
+    return (
+      <div className="flex-1 overflow-y-auto p-6">
+        <pre className="p-5 bg-[#161b22] rounded-xl border border-[#30363d] font-mono text-xs text-[#c9d1d9] overflow-x-auto whitespace-pre-wrap">
+          {editedCode}
+        </pre>
+      </div>
+    );
+  };
 
   return (
     <div
@@ -159,10 +225,20 @@ export function ArtifactPreviewModal({
                     ? "bg-[#1f6feb] text-white shadow-sm"
                     : "text-[#8b949e] hover:text-white hover:bg-[#21262d]"
                 }`}
-                title="Rendered live preview (HTML/SVG/MarkView)"
+                title="Live Rendered Display (HTML / Mermaid / Draw.io / Slides)"
               >
                 <Eye className="w-3.5 h-3.5" />
-                <span>{isMarkdown ? "MarkView" : "Live View"}</span>
+                <span>
+                  {isMarkdown
+                    ? "MarkView"
+                    : isMermaid
+                    ? "Diagram"
+                    : isDrawio
+                    ? "Draw.io"
+                    : isSlides
+                    ? "Slides"
+                    : "Live View"}
+                </span>
               </button>
 
               <button
@@ -234,7 +310,7 @@ export function ArtifactPreviewModal({
               {/* Left Code Editor Panel */}
               <div className="w-1/2 flex flex-col min-h-0">
                 <div className="px-3 py-1.5 bg-[#161b22] border-b border-[#30363d] text-[10px] text-[#8b949e] font-mono flex items-center justify-between">
-                  <span>Source Code (Editable)</span>
+                  <span>Source Definition (Editable)</span>
                   <span>{lineCount} lines</span>
                 </div>
                 <textarea
@@ -249,31 +325,32 @@ export function ArtifactPreviewModal({
               </div>
 
               {/* Right Live Preview Panel */}
-              <div className="w-1/2 flex flex-col min-h-0 bg-[#0d1117]">
+              <div className="w-1/2 flex flex-col min-h-0 bg-[#0d1117] overflow-hidden">
                 <div className="px-3 py-1.5 bg-[#161b22] border-b border-[#30363d] text-[10px] text-[#8b949e] font-mono flex items-center justify-between">
                   <span className="flex items-center space-x-1">
                     <Sparkles className="w-3 h-3 text-cyan-400" />
-                    <span>{isMarkdown ? "MarkView Rendered Output" : "Live Output"}</span>
+                    <span>Live Output</span>
                   </span>
-                  <span className="text-emerald-400">{isMarkdown ? "MarkView Engine" : "Sandbox Active"}</span>
+                  <span className="text-emerald-400">Interactive</span>
                 </div>
-                <div className="flex-1 overflow-auto p-4">
-                  {artifact.extension === "html" ? (
+                <div className="flex-1 overflow-auto p-4 flex flex-col">
+                  {isMermaid ? (
+                    <MermaidViewer code={editedCode} />
+                  ) : isDrawio ? (
+                    <DrawioViewer content={editedCode} name={editedName} />
+                  ) : isSlides ? (
+                    <SlidesViewer content={editedCode} title={editedName} />
+                  ) : isMarkdown ? (
+                    <div className="p-4 bg-[#161b22] rounded-xl border border-[#30363d]">
+                      <MarkviewRenderer content={editedCode} showLineNumbers={false} />
+                    </div>
+                  ) : ext === "html" ? (
                     <iframe
                       title={artifact.name}
                       srcDoc={editedCode}
                       sandbox="allow-scripts allow-same-origin allow-popups"
                       className="w-full h-full min-h-[500px] bg-white rounded-xl border border-[#30363d]"
                     />
-                  ) : artifact.extension === "svg" ? (
-                    <div
-                      className="w-full h-full flex items-center justify-center p-4 bg-[#161b22] rounded-xl border border-[#30363d]"
-                      dangerouslySetInnerHTML={{ __html: editedCode }}
-                    />
-                  ) : isMarkdown ? (
-                    <div className="p-4 bg-[#161b22] rounded-xl border border-[#30363d]">
-                      <MarkviewRenderer content={editedCode} showLineNumbers={false} />
-                    </div>
                   ) : (
                     <div className="p-4 bg-[#161b22] rounded-xl border border-[#30363d] font-mono text-xs text-[#c9d1d9] whitespace-pre-wrap">
                       {editedCode}
@@ -299,30 +376,10 @@ export function ArtifactPreviewModal({
             </div>
           )}
 
-          {/* Full Live Preview Mode (80% screen rendered display) */}
+          {/* Full Live Preview Mode */}
           {mode === "preview" && (
-            <div className="flex-1 flex flex-col min-h-0 bg-[#0d1117]">
-              {artifact.extension === "html" ? (
-                <iframe
-                  title={artifact.name}
-                  srcDoc={editedCode}
-                  sandbox="allow-scripts allow-same-origin allow-popups"
-                  className="w-full h-full bg-white border-0"
-                />
-              ) : artifact.extension === "svg" ? (
-                <div
-                  className="w-full h-full flex items-center justify-center p-8 bg-[#0d1117] overflow-auto"
-                  dangerouslySetInnerHTML={{ __html: editedCode }}
-                />
-              ) : isMarkdown ? (
-                <MarkviewDocumentView content={editedCode} title={editedName} />
-              ) : (
-                <div className="flex-1 overflow-y-auto p-6">
-                  <pre className="p-5 bg-[#161b22] rounded-xl border border-[#30363d] font-mono text-xs text-[#c9d1d9] overflow-x-auto whitespace-pre-wrap">
-                    {editedCode}
-                  </pre>
-                </div>
-              )}
+            <div className="flex-1 flex flex-col min-h-0 bg-[#0d1117] overflow-hidden">
+              {renderLiveViewComponent()}
             </div>
           )}
         </div>

@@ -15,6 +15,7 @@ import {
   Eye,
   Sparkles,
   Calendar,
+  Presentation,
 } from "lucide-react";
 import { useToastStore } from "../../store/toastStore";
 
@@ -27,13 +28,31 @@ export function ArtifactsView() {
   const [modalArtifact, setModalArtifact] = useState<ArtifactItem | null>(null);
   const [modalMode, setModalMode] = useState<"preview" | "code" | "split">("preview");
 
-  const filterExtensions = ["all", "html", "md", "svg", "json", "sql"];
+  const filterCategories = [
+    { id: "all", label: "All Deliverables" },
+    { id: "diagrams", label: "Diagrams (Mermaid / Draw.io)" },
+    { id: "slides", label: "Slide Decks" },
+    { id: "html", label: "HTML Sandboxes" },
+    { id: "md", label: "MarkView (.md)" },
+    { id: "svg", label: "SVG Vectors" },
+    { id: "sql", label: "SQL Migrations" },
+  ];
 
   const filtered = artifacts.filter((art) => {
     const matchesSearch =
       art.name.toLowerCase().includes(search.toLowerCase()) ||
       art.summary.toLowerCase().includes(search.toLowerCase());
-    const matchesExt = selectedExt === "all" || art.extension.toLowerCase() === selectedExt;
+
+    const ext = art.extension.toLowerCase();
+    let matchesExt = selectedExt === "all";
+    if (selectedExt === "diagrams") {
+      matchesExt = ext === "mmd" || ext === "mermaid" || ext === "drawio";
+    } else if (selectedExt === "slides") {
+      matchesExt = ext === "deck" || ext === "slides";
+    } else if (selectedExt !== "all") {
+      matchesExt = ext === selectedExt;
+    }
+
     return matchesSearch && matchesExt;
   });
 
@@ -43,32 +62,23 @@ export function ArtifactsView() {
   };
 
   const handleCreateNew = () => {
-    const name = `new_widget_${Date.now().toString().slice(-4)}.html`;
-    const defaultHtml = `<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    body { background: #0d1117; color: #58a6ff; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 90vh; }
-    .card { background: #161b22; border: 1px solid #30363d; padding: 2rem; border-radius: 1rem; text-align: center; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h2>⚡ New Interactive Artifact</h2>
-    <p style="color: #8b949e; font-size: 13px;">Created in Rho Lota Studio</p>
-  </div>
-</body>
-</html>`;
+    const name = `flowchart_diagram_${Date.now().toString().slice(-4)}.mmd`;
+    const defaultMermaid = `graph TD
+    A[Client Request] --> B{Valid Payload?}
+    B -->|Yes| C[Tokio FSM Dispatch]
+    B -->|No| D[Reject with Error]
+    C --> E[Execute Red-Green TDD]
+    E --> F[Verified Delivery]`;
 
     addArtifact({
       name,
-      extension: "html",
-      language: "html",
-      summary: "Newly generated custom HTML artifact.",
+      extension: "mmd",
+      language: "mermaid",
+      summary: "Newly generated interactive Mermaid flowchart diagram.",
       userFacing: true,
-      content: defaultHtml,
+      content: defaultMermaid,
     });
-    addToast(`Created new artifact: ${name}`, "success");
+    addToast(`Created new Mermaid diagram: ${name}`, "success");
   };
 
   const getExtensionBadge = (ext: string) => {
@@ -77,6 +87,14 @@ export function ArtifactsView() {
         return "text-orange-400 bg-orange-500/10 border-orange-500/30";
       case "md":
         return "text-blue-400 bg-blue-500/10 border-blue-500/30";
+      case "mmd":
+      case "mermaid":
+        return "text-purple-400 bg-purple-500/10 border-purple-500/30";
+      case "drawio":
+        return "text-amber-400 bg-amber-500/10 border-amber-500/30";
+      case "deck":
+      case "slides":
+        return "text-pink-400 bg-pink-500/10 border-pink-500/30";
       case "svg":
         return "text-purple-400 bg-purple-500/10 border-purple-500/30";
       case "json":
@@ -94,6 +112,14 @@ export function ArtifactsView() {
         return <Globe className="w-5 h-5 text-orange-400" />;
       case "md":
         return <FileText className="w-5 h-5 text-blue-400" />;
+      case "mmd":
+      case "mermaid":
+        return <Layers className="w-5 h-5 text-purple-400" />;
+      case "drawio":
+        return <Layers className="w-5 h-5 text-amber-400" />;
+      case "deck":
+      case "slides":
+        return <Presentation className="w-5 h-5 text-pink-400" />;
       case "svg":
         return <ImageIcon className="w-5 h-5 text-purple-400" />;
       case "sql":
@@ -114,7 +140,7 @@ export function ArtifactsView() {
           <div>
             <h1 className="text-sm font-semibold text-white">Artifacts & Project Deliverables</h1>
             <p className="text-[11px] text-[#8b949e]">
-              Explore, inspect, edit, and preview generated project files and interactive HTML sandboxes.
+              Explore Mermaid diagrams, Draw.io architectures, slide presentations, HTML sandboxes, and MarkView docs.
             </p>
           </div>
         </div>
@@ -128,7 +154,7 @@ export function ArtifactsView() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search artifacts..."
+              placeholder="Search deliverables & diagrams..."
               className="w-full bg-[#0d1117] border border-[#30363d] rounded-xl pl-8 pr-3 py-1.5 text-white text-xs outline-none focus:border-cyan-500 transition"
             />
           </div>
@@ -144,23 +170,23 @@ export function ArtifactsView() {
         </div>
       </div>
 
-      {/* Extension Filters Bar */}
+      {/* Categories Filter Bar */}
       <div className="px-6 py-2 border-b border-[#30363d] bg-[#0d1117]/80 flex items-center space-x-2 overflow-x-auto flex-shrink-0">
-        <span className="text-[10px] text-[#8b949e] uppercase font-semibold mr-1">Filter:</span>
-        {filterExtensions.map((ext) => (
+        <span className="text-[10px] text-[#8b949e] uppercase font-semibold mr-1">Category:</span>
+        {filterCategories.map((cat) => (
           <button
-            key={ext}
-            onClick={() => setSelectedExt(ext)}
-            className={`px-2.5 py-1 rounded-lg text-[11px] font-mono transition uppercase ${
-              selectedExt === ext
+            key={cat.id}
+            onClick={() => setSelectedExt(cat.id)}
+            className={`px-2.5 py-1 rounded-lg text-[11px] transition whitespace-nowrap ${
+              selectedExt === cat.id
                 ? "bg-cyan-950/60 border border-cyan-500 text-cyan-200 font-semibold"
                 : "bg-[#161b22] border border-[#30363d] text-[#8b949e] hover:text-white"
             }`}
           >
-            {ext === "all" ? "All Formats" : `.${ext}`}
+            {cat.label}
           </button>
         ))}
-        <span className="text-[11px] text-[#8b949e] ml-auto font-mono">
+        <span className="text-[11px] text-[#8b949e] ml-auto font-mono flex-shrink-0">
           Showing {filtered.length} of {artifacts.length}
         </span>
       </div>
@@ -170,7 +196,7 @@ export function ArtifactsView() {
         {filtered.length === 0 ? (
           <div className="h-64 flex flex-col items-center justify-center text-center space-y-2 text-[#8b949e]">
             <Layers className="w-8 h-8 stroke-1 text-gray-500" />
-            <p className="text-xs">No artifacts matching filter.</p>
+            <p className="text-xs">No deliverables matching selected filter.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -233,7 +259,7 @@ export function ArtifactsView() {
                       <button
                         onClick={() => handleOpenModal(art, "preview")}
                         className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-[#21262d] hover:bg-[#30363d] text-white font-medium text-[11px] border border-[#30363d] transition"
-                        title="Open full 80% screen rendered display"
+                        title="Open interactive 80% screen preview"
                       >
                         <Eye className="w-3.5 h-3.5 text-cyan-400" />
                         <span>View</span>
