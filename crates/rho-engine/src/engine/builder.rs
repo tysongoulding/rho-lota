@@ -183,7 +183,7 @@ fn default_model_for_provider(provider: &str) -> &'static str {
     match provider.to_ascii_lowercase().as_str() {
         "chatgpt" => "gpt-5.4",
         "openai" | "copilot" => "gpt-4o",
-        "gemini" => "gemini-2.0-flash",
+        "gemini" => "gemini-flash-latest",
         "deepseek" => "deepseek-chat",
         "groq" => "llama-3.3-70b-versatile",
         "openrouter" => "anthropic/claude-3.7-sonnet",
