@@ -8,11 +8,15 @@ export interface FileNode {
   size?: number;
 }
 
+export type GitProvider = "github" | "gitlab" | "bitbucket" | "git";
+
 interface WorkspaceState {
   workspacePath: string;
   repoName: string;
   gitBranch: string;
   worktree: string;
+  remoteUrl: string;
+  remoteProvider: GitProvider;
   files: FileNode[];
   selectedFile: { path: string; content?: string } | null;
   attachedFiles: string[];
@@ -22,6 +26,8 @@ interface WorkspaceState {
   setRepoName: (repo: string) => void;
   setGitBranch: (branch: string) => void;
   setWorktree: (worktree: string) => void;
+  setRemoteUrl: (url: string) => void;
+  setRemoteProvider: (provider: GitProvider) => void;
   setFiles: (files: FileNode[]) => void;
   selectFile: (file: { path: string; content?: string } | null) => void;
   attachFile: (path: string) => void;
@@ -101,6 +107,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   repoName: "rho-lota",
   gitBranch: "feature/07-ui_ux",
   worktree: "default",
+  remoteUrl: "https://github.com/tysongoulding/rho-lota/tree/feature/07-ui_ux",
+  remoteProvider: "github",
   files: DEFAULT_MOCK_FILES,
   selectedFile: null,
   attachedFiles: [],
@@ -110,6 +118,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   setRepoName: (repo: string) => set({ repoName: repo }),
   setGitBranch: (branch: string) => set({ gitBranch: branch }),
   setWorktree: (worktree: string) => set({ worktree }),
+  setRemoteUrl: (url: string) => set({ remoteUrl: url }),
+  setRemoteProvider: (provider: GitProvider) => set({ remoteProvider: provider }),
   setFiles: (files: FileNode[]) => set({ files }),
   selectFile: (file) => set({ selectedFile: file }),
   attachFile: (path: string) =>

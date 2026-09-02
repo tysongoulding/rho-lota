@@ -44,6 +44,38 @@ fn close_window(window: tauri::Window) {
     let _ = window.close();
 }
 
+#[tauri::command]
+fn open_local_path(path: String) {
+    #[cfg(target_os = "windows")]
+    {
+        let _ = std::process::Command::new("explorer.exe").arg(&path).spawn();
+    }
+    #[cfg(target_os = "macos")]
+    {
+        let _ = std::process::Command::new("open").arg(&path).spawn();
+    }
+    #[cfg(target_os = "linux")]
+    {
+        let _ = std::process::Command::new("xdg-open").arg(&path).spawn();
+    }
+}
+
+#[tauri::command]
+fn open_external_url(url: String) {
+    #[cfg(target_os = "windows")]
+    {
+        let _ = std::process::Command::new("cmd").args(["/C", "start", "", &url]).spawn();
+    }
+    #[cfg(target_os = "macos")]
+    {
+        let _ = std::process::Command::new("open").arg(&url).spawn();
+    }
+    #[cfg(target_os = "linux")]
+    {
+        let _ = std::process::Command::new("xdg-open").arg(&url).spawn();
+    }
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -52,7 +84,9 @@ pub fn run() {
             start_drag_window,
             minimize_window,
             toggle_maximize_window,
-            close_window
+            close_window,
+            open_local_path,
+            open_external_url
         ])
         .setup(|app| {
             if let Some(main_window) = app.get_webview_window("main") {
