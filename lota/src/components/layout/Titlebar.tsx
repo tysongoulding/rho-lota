@@ -11,12 +11,36 @@ import {
   ShieldAlert,
   AlertCircle,
   GitBranch,
+  Minus,
+  Square,
+  X,
 } from "lucide-react";
 
 export function Titlebar() {
   const { sessionInfo, usage, turnPhase } = useSessionStore();
-  const { toggleSidebar, toggleWorkbench, workbenchOpen } = useUiStore();
+  const { toggleSidebar, toggleWorkbench, workbenchOpen, sidebarOpen } = useUiStore();
   const { workspacePath, gitBranch } = useWorkspaceStore();
+
+  const handleMinimize = async () => {
+    try {
+      const { getCurrentWindow } = await import("@tauri-apps/api/window");
+      await getCurrentWindow().minimize();
+    } catch {}
+  };
+
+  const handleMaximize = async () => {
+    try {
+      const { getCurrentWindow } = await import("@tauri-apps/api/window");
+      await getCurrentWindow().toggleMaximize();
+    } catch {}
+  };
+
+  const handleClose = async () => {
+    try {
+      const { getCurrentWindow } = await import("@tauri-apps/api/window");
+      await getCurrentWindow().close();
+    } catch {}
+  };
 
   const renderStatusPill = (phase: TurnPhase) => {
     switch (phase) {
@@ -63,17 +87,11 @@ export function Titlebar() {
   return (
     <header
       data-tauri-drag-region
-      className="flex items-center justify-between px-3 py-2 border-b border-[#30363d] bg-[#161b22] select-none text-xs"
+      className="flex items-center justify-between pl-3 pr-0 py-0 border-b border-[#30363d] bg-[#161b22] select-none text-xs h-9"
     >
-      <div className="flex items-center space-x-3">
-        <button
-          onClick={toggleSidebar}
-          className="p-1 rounded hover:bg-[#21262d] text-[#8b949e] hover:text-white transition"
-          title="Toggle Sidebar"
-        >
-          <PanelLeft className="w-4 h-4" />
-        </button>
-
+      {/* Left Section: Logo & Name -> Sidebar Toggle -> Workspace Pill -> Model */}
+      <div className="flex items-center space-x-2.5 h-full">
+        {/* Logo & Company Name */}
         <div className="flex items-center space-x-2">
           <div className="flex items-center justify-center w-5 h-5 rounded bg-blue-600/20 text-blue-400 font-bold text-xs">
             ρ
@@ -81,6 +99,18 @@ export function Titlebar() {
           <span className="font-semibold text-white tracking-wide">Rho Lota</span>
         </div>
 
+        {/* Sidebar Toggle Button (after Logo & Name) */}
+        <button
+          onClick={toggleSidebar}
+          className={`p-1 rounded transition ${
+            sidebarOpen ? "bg-[#21262d] text-white" : "text-[#8b949e] hover:text-white hover:bg-[#21262d]"
+          }`}
+          title="Toggle Navigation Sidebar (Ctrl+B)"
+        >
+          <PanelLeft className="w-3.5 h-3.5" />
+        </button>
+
+        {/* Workspace Path & Git Branch */}
         <div className="flex items-center space-x-1 text-[#8b949e] font-mono text-[11px] bg-[#0d1117] px-2 py-0.5 rounded border border-[#30363d]">
           <span>{workspacePath}</span>
           <span className="text-[#484f58]">/</span>
@@ -88,12 +118,14 @@ export function Titlebar() {
           <span className="text-purple-300">{gitBranch}</span>
         </div>
 
-        <span className="text-[#8b949e] font-mono hidden md:inline">
+        {/* Model info */}
+        <span className="text-[#8b949e] font-mono hidden lg:inline">
           {sessionInfo.provider || "anthropic"} / {sessionInfo.model || "claude-3-7-sonnet"}
         </span>
       </div>
 
-      <div className="flex items-center space-x-3 text-[#8b949e]">
+      {/* Right Section: Status -> Usage -> Session -> Workbench Toggle -> Window Controls */}
+      <div className="flex items-center space-x-2 h-full text-[#8b949e]">
         {renderStatusPill(turnPhase)}
 
         {usage.contextPercent !== undefined && (
@@ -104,11 +136,12 @@ export function Titlebar() {
         )}
 
         {sessionInfo.id && (
-          <span className="font-mono text-[10px] bg-[#21262d] px-1.5 py-0.5 rounded border border-[#30363d]">
+          <span className="font-mono text-[10px] bg-[#21262d] px-1.5 py-0.5 rounded border border-[#30363d] hidden sm:inline">
             {sessionInfo.id.slice(0, 8)}
           </span>
         )}
 
+        {/* Workbench Toggle Button (before Minimize) */}
         <button
           onClick={toggleWorkbench}
           className={`p-1 rounded transition ${
@@ -116,10 +149,37 @@ export function Titlebar() {
               ? "bg-[#1f6feb]/20 text-[#58a6ff]"
               : "hover:bg-[#21262d] text-[#8b949e] hover:text-white"
           }`}
-          title="Toggle Streaming Workbench"
+          title="Toggle Streaming Workbench (Ctrl+\)"
         >
-          <PanelRight className="w-4 h-4" />
+          <PanelRight className="w-3.5 h-3.5" />
         </button>
+
+        {/* Integrated Window Controls (Frameless) */}
+        <div className="flex items-center h-full ml-1">
+          <button
+            onClick={handleMinimize}
+            className="w-10 h-full flex items-center justify-center hover:bg-[#21262d] text-[#8b949e] hover:text-white transition"
+            title="Minimize"
+          >
+            <Minus className="w-3.5 h-3.5" />
+          </button>
+
+          <button
+            onClick={handleMaximize}
+            className="w-10 h-full flex items-center justify-center hover:bg-[#21262d] text-[#8b949e] hover:text-white transition"
+            title="Maximize / Restore"
+          >
+            <Square className="w-3 h-3" />
+          </button>
+
+          <button
+            onClick={handleClose}
+            className="w-11 h-full flex items-center justify-center hover:bg-[#e81123] text-[#8b949e] hover:text-white transition"
+            title="Close"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
     </header>
   );
