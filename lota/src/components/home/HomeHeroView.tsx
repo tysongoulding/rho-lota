@@ -123,7 +123,7 @@ export function HomeHeroView({ fullname = "Tyson Goulding" }: HomeHeroViewProps)
         <div className="flex items-center space-x-3 bg-[#161b22] border border-[#30363d] px-4 py-1.5 rounded-full shadow-sm text-xs text-[#c9d1d9]">
           <div className="flex items-center space-x-1.5">
             {renderWeatherIcon(weather.condition)}
-            <span className="font-semibold text-white font-mono">{weather.tempF}°F</span>
+            <span className="font-semibold text-white">{weather.tempF}°F</span>
             <span className="text-[#8b949e]">({weather.tempC}°C)</span>
             <span className="text-gray-400">•</span>
             <span>{weather.condition}</span>
@@ -146,7 +146,7 @@ export function HomeHeroView({ fullname = "Tyson Goulding" }: HomeHeroViewProps)
 
         {/* Digital Time Display */}
         <div className="space-y-1">
-          <div className="text-4xl sm:text-5xl font-extrabold text-white font-mono tracking-tight flex items-center justify-center space-x-3">
+          <div className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight flex items-center justify-center space-x-3">
             <Clock className="w-7 h-7 sm:w-8 sm:h-8 text-[#58a6ff]" />
             <span>{timeString}</span>
           </div>
@@ -205,7 +205,7 @@ export function HomeHeroView({ fullname = "Tyson Goulding" }: HomeHeroViewProps)
       </div>
 
       {/* Footer Branding */}
-      <div className="text-[10px] text-[#484f58] font-mono flex items-center space-x-2 pb-2">
+      <div className="text-[10px] text-[#484f58] flex items-center space-x-2 pb-2">
         <span>ρ Rho Lota 2.0</span>
         <span>•</span>
         <span>Rust Tokio FSM Core</span>

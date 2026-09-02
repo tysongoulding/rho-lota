@@ -13,13 +13,22 @@
 
 html,
 body,
+#root,
+input,
+textarea,
+select,
+button {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+html,
+body,
 #root {
   width: 100%;
   height: 100%;
   margin: 0;
   padding: 0;
   overflow: hidden !important;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   background-color: var(--bg-main);
   color: var(--text-main);
   transition: background-color 0.2s ease, color 0.2s ease;
