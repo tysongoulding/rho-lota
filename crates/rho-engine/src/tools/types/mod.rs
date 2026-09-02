@@ -92,6 +92,9 @@ fn clean_schema(value: &mut serde_json::Value) {
             *value = serde_json::Value::Object(serde_json::Map::new());
         }
         serde_json::Value::Object(map) => {
+            map.remove("title");
+            map.remove("$schema");
+            map.remove("additionalProperties");
             if map.get("default") == Some(&serde_json::Value::Null) {
                 map.remove("default");
             }
