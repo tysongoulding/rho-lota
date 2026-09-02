@@ -231,7 +231,7 @@ export function Statusbar() {
         >
           <button
             onClick={openRemoteRepo}
-            className="flex items-center space-x-1 text-purple-300 hover:text-purple-200 bg-[#161b22] px-1.5 py-0.5 rounded border border-[#30363d] hover:border-purple-500/50 transition flex-shrink-0 group"
+            className="flex items-center space-x-1 text-purple-300 hover:text-purple-200 hover:bg-purple-950/30 px-1 py-0.5 rounded transition flex-shrink-0 group"
             title="Click to open remote repo in browser. Hover for options."
           >
             {renderProviderIcon(remoteProvider)}
@@ -244,7 +244,7 @@ export function Statusbar() {
                 <span className="text-purple-400">{worktree}</span>
               </>
             )}
-            <ExternalLink className="w-2.5 h-2.5 text-[#8b949e] group-hover:text-white transition ml-0.5" />
+            <ExternalLink className="w-2.5 h-2.5 text-purple-400/60 group-hover:text-purple-300 transition ml-0.5" />
           </button>
 
           {/* Repo Hover Card / Popover */}
