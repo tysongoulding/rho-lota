@@ -1,6 +1,7 @@
 import { useUiStore } from "../../store/uiStore";
 import { useSessionStore } from "../../store/sessionStore";
 import {
+  User,
   MessageSquarePlus,
   MessageSquare,
   FolderTree,
@@ -31,16 +32,28 @@ export function Sidebar() {
 
   return (
     <aside className="w-56 border-r border-[#30363d] bg-[#0d1117] flex flex-col h-full text-xs select-none">
-      <div className="p-3 border-b border-[#30363d]">
+      <div className="p-3 border-b border-[#30363d] space-y-2">
+        {/* New Agent Button (above New Chat) */}
+        <button
+          onClick={() => setActiveView("agents")}
+          className="w-full flex items-center justify-center space-x-2 py-1.5 px-3 bg-[#161b22] hover:bg-[#21262d] text-white rounded-lg border border-[#30363d] font-medium transition"
+          title="Create or configure an agent persona"
+        >
+          <User className="w-4 h-4 text-purple-400" />
+          <span>New Agent</span>
+        </button>
+
+        {/* New Chat Button (renamed from New Session) */}
         <button
           onClick={() => {
             resetSession();
             setActiveView("chat");
           }}
           className="w-full flex items-center justify-center space-x-2 py-1.5 px-3 bg-[#21262d] hover:bg-[#30363d] text-white rounded-lg border border-[#30363d] font-medium transition"
+          title="Start a new chat session (Ctrl+Shift+N)"
         >
-          <MessageSquarePlus className="w-4 h-4" />
-          <span>New Session</span>
+          <MessageSquarePlus className="w-4 h-4 text-[#58a6ff]" />
+          <span>New Chat</span>
         </button>
       </div>
 

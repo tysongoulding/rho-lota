@@ -18,8 +18,8 @@ Use this ASCII map to locate components for **MACD** (Move, Add, Change, Delete)
 │ [C-SIDEBAR]         │ [C-MAIN-VIEW] App.tsx Router                               │ [C-WORKBENCH]                      │
 │ Sidebar.tsx         │                                                            │ StreamingWorkbench.tsx             │
 │                     │  Active View: 'chat'                                       │                                    │
-│ [New Session]       │  ┌──────────────────────────────────────────────────────┐  │ Tabs:                              │
-│                     │  │ [C-FEED] VirtualizedMessageFeed.tsx                   │  │ [Diff] [File] [Thinking] [JSON]    │
+│ [New Agent]         │  ┌──────────────────────────────────────────────────────┐  │ Tabs:                              │
+│ [New Chat]          │  │ [C-FEED] VirtualizedMessageFeed.tsx                   │  │ [Diff] [File] [Thinking] [JSON]    │
 │ Workspace:          │  │  ├─ [C-USER-MSG] User turn bubble                    │  │ ─────────────────────────────── │
 │ • [Chat Feed]       │  │  ├─ [C-THINKING] ThinkingBlock.tsx (Reasoning)       │  │ • [C-DIFF-VIEWER]               │
 │ • [Files Explorer]  │  │  ├─ [C-MARKDOWN] MessageItem.tsx (react-markdown)    │  │   DiffViewer.tsx                │

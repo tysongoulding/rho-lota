@@ -16,6 +16,7 @@ import {
   RotateCcw,
   Sparkles,
   PanelBottom,
+  User,
 } from "lucide-react";
 
 interface PaletteCommand {
@@ -107,16 +108,27 @@ export function CommandPalette() {
 
     // Actions
     {
-      id: "act-new-session",
+      id: "act-new-agent",
       category: "Actions",
-      label: "New Session",
-      description: "Reset active conversation context",
+      label: "New Agent",
+      description: "Create or configure an agent persona",
+      icon: User,
+      action: () => {
+        setActiveView("agents");
+        addToast("Opened Agent Personas & Inspector", "info");
+      },
+    },
+    {
+      id: "act-new-chat",
+      category: "Actions",
+      label: "New Chat",
+      description: "Reset active conversation context and start fresh",
       icon: RotateCcw,
       shortcut: "Ctrl+Shift+N",
       action: () => {
         resetSession();
         setActiveView("chat");
-        addToast("Started a new session", "success");
+        addToast("Started a new chat session", "success");
       },
     },
     {
