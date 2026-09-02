@@ -1,31 +1,20 @@
-# Model Context Protocol (MCP) & Extensions
+# Model Context Protocol (MCP) & Plugins
 
-`rho` extends its built-in tool suite (`read`, `write`, `edit`, `bash`, `search`, `fetch`) via the standard **Model Context Protocol (MCP)** and **plugin tool hooks**.
+`rho` extends its capabilities through two systems:
 
-A typical extension setup combines both in `config.toml`:
+1. **Model Context Protocol (MCP) Servers**: Out-of-process JSON-RPC tool
+   providers that expose external APIs, databases, browser automation, and
+   custom tools.
+2. **Rig-Native Plugin Subsystem**: Event hooks, dynamic tools, custom
+   providers, and host UI integration for security guardrails, request steering,
+   and tool transformation.
 
-```toml
-[mcp]
-enabled = true
+---
 
-[mcp.servers.playwright]
-enabled = true
-command = "npx"
-args = [
-  "-y",
-  "@playwright/mcp",
-  "--headless",
-  "--isolated",
-]
+## 1. Configuring MCP Servers
 
-[plugins.permission]
-enabled = true
-path = "/Users/you/.config/rho/plugins/rho-plugin-permission"
-```
-
-## Configuring MCP Servers
-
-MCP servers can be configured globally in `~/.config/rho/config.toml` or per-project in `.rho/config.toml`:
+MCP servers can be configured globally in `~/.config/rho/config.toml` or
+per-project in `.rho/config.toml`:
 
 ```toml
 [mcp]
@@ -42,107 +31,219 @@ args = ["-y", "@modelcontextprotocol/server-github"]
 env = { GITHUB_PERSONAL_ACCESS_TOKEN = "ghp_..." }
 enabled = true
 
-[mcp.servers.local_script]
-command = "python3"
-args = ["./tools/mcp_server.py"]
+[mcp.servers.playwright]
+command = "npx"
+args = ["-y", "@playwright/mcp", "--headless", "--isolated"]
 enabled = true
 ```
 
-## Tool Namespacing
+### Tool Namespacing
 
-Every tool exposed by an MCP server is automatically namespaced using the server's configuration key:
+Every tool exposed by an MCP server is automatically namespaced using the
+server's configuration key: `[mcp.servers.<server_name>]` + tool `foo`
+$\rightarrow$ model-facing tool `<server_name>_foo`
 
-`[mcp.servers.<server_name>]` + tool `foo` $\rightarrow$ model-facing tool `<server_name>_foo`
+---
 
-For example:
-- Server `github` with tool `create_issue` $\rightarrow$ `github_create_issue`
-- Server `filesystem` with tool `read_file` $\rightarrow$ `filesystem_read_file`
+## 2. Plugins (Rig-Native Hook Subsystem)
 
-## Skills versus MCP Plugins
+Plugins in `rho` are long-running daemon processes or native Rust plugins that
+hook into [Rig's agent lifecycle](https://rig.rs/docs/concepts/hooks) to
+observe, steer, or augment execution.
 
-- **Skills**: Declarative markdown workflows (`SKILL.md`) that guide the model on specialized multi-step tasks (e.g., creating specs, reviewing code, planning implementations). They run inside the model prompt context and require no external binaries.
-- **MCP Servers**: Standard JSON-RPC stdio processes that give the agent direct access to external capabilities, databases, APIs, browser automation, and custom tooling.
-
-## Plugins (Tool Hooks)
-
-Plugins are small binaries that hook every tool call. Before each tool runs,
-the plugin receives the call on stdin and can **allow**, **deny** (with a
-reason sent back to the model), or force an interactive approval prompt.
+### Configuring Plugins
 
 Configure plugins in `~/.config/rho/config.toml` or `.rho/config.toml`:
 
 ```toml
 [plugins.permission]
 enabled = true
-command = "rho-plugin-permission"        # looked up on PATH
-# or point at a binary / plugin checkout directly:
+command = "rho-plugin-permission" # Looked up on PATH
+# or point at a binary / checkout directly:
 # path = "/Users/you/.config/rho/plugins/rho-plugin-permission"
 args = []
 ```
 
-Path resolution rules:
+#### Path Resolution Rules:
 
-- Relative `path` values resolve against the **project working directory**
-  (where `rho` runs), not the config file's directory.
-- `~` is **not** expanded in `path` — use absolute paths or `command`.
-- A `path` may also be a plugin repo checkout: `rho` then looks for
-  `<path>/target/release/<name>` and `<path>/target/debug/<name>` where
-  `<name>` is the path's final component.
+- Relative `path` values resolve against the **working directory** where `rho`
+  runs.
+- `~` is not expanded in `path` — use absolute paths or `command`.
+- A `path` may point to a cargo project: `rho` automatically resolves
+  `<path>/target/release/<name>` or `<path>/target/debug/<name>`.
 
-### Hook protocol
+---
 
-For each tool call the plugin process is spawned once and receives a single
-JSON line on stdin:
+## 3. Daemon Protocol (JSON-RPC 2.0 over Stdio)
+
+External plugins run as persistent processes communicating via standard JSON-RPC
+2.0 over standard I/O (stdin/stdout).
+
+### A. Lifecycle & Hook Events (`Host -> Plugin`)
+
+The engine dispatches Rig lifecycle events to active plugins:
+
+| Method                     | Event Payload                                                                                     | Description                                                   |
+| :------------------------- | :------------------------------------------------------------------------------------------------ | :------------------------------------------------------------ |
+| `hook/tool_call`           | `{"event": "tool_call", "tool_name": "...", "args": {...}}`                                       | Intercept tool call before execution.                         |
+| `hook/tool_result`         | `{"event": "tool_result", "tool_name": "...", "args": {...}, "output": "...", "is_error": false}` | Inspect output after tool execution.                          |
+| `hook/invalid_tool_call`   | `{"event": "invalid_tool_call", "tool_name": "...", "args": {...}, "available_tools": [...]}`     | Intercept unknown / hallucinated tool calls for self-healing. |
+| `hook/completion_call`     | `{"event": "completion_call", "turn": 1, "prompt": {...}, "history": [...]}`                      | Inspect or patch turn request parameters.                     |
+| `hook/completion_response` | `{"event": "completion_response", "prompt": {...}, "response": [...]}`                            | Audit raw completion output and tokens.                       |
+
+### B. Steering Actions (`Plugin -> Host Response`)
+
+In response to any hook request, the plugin returns a standard Rig `Flow`
+action:
+
+- `{"action": "continue"}` — Proceed normally.
+- `{"action": "skip", "reason": "..."}` — Skip tool execution and return
+  `reason` as the tool result.
+- `{"action": "rewrite_args", "args": {...}}` — Run the tool with replacement
+  JSON arguments.
+- `{"action": "rewrite_result", "result": "..."}` — Replace the output string
+  returned to the model.
+- `{"action": "override_request", "request": {"temperature": 0.0, "active_tools": ["bash"]}}`
+  — Patch turn parameters.
+- `{"action": "repair", "tool_name": "bash"}` — Repair an invalid/aliased tool
+  name on the fly.
+- `{"action": "retry", "feedback": "..."}` — Send error feedback back to the LLM
+  to self-correct.
+- `{"action": "terminate", "reason": "..."}` — Stop the agent turn immediately.
+
+---
+
+## 4. Host Services API (`Plugin -> Host Requests`)
+
+While evaluating an event, a plugin can request host services (such as UI
+modals) via bidirectional JSON-RPC:
+
+### 1. `host/ui/confirm`
+
+Presents a Yes/No modal in `rho`'s terminal UI:
 
 ```json
-{"event":"pre_tool_call","tool":"bash","arguments":{"command":"git status"}}
+{
+  "jsonrpc": "2.0",
+  "id": 100,
+  "method": "host/ui/confirm",
+  "params": {
+    "title": "Dangerous Command",
+    "message": "Allow 'rm -rf target'?",
+    "default_yes": false
+  }
+}
 ```
 
-After a tool finishes, `post_tool_result` fires with the same shape plus
-`output` and `is_error`. The plugin's stdout is parsed as JSON:
+Host response:
 
-- `{"action":"deny","reason":"..."}` (or `"block"`) — tool call is skipped and
-  the reason is sent to the model.
-- `{"action":"ask"}` (or `"prompt"`) — rho shows an interactive approval
-  prompt; the user can Allow, Always allow, or Deny.
-- Anything else (or empty stdout) — allowed.
-- A non-zero exit code denies with stderr/stdout as the reason.
-- `post_tool_result` responses are observational only; a missing or
-  unspawnable binary fails open (allows).
+```json
+{ "jsonrpc": "2.0", "id": 100, "result": { "confirmed": true } }
+```
 
-### Example: permission plugin
+### 2. `host/ui/select`
 
-[rho-plugin-permission](https://github.com/casonadams/rho-plugin-permission)
-enforces allow/deny rules from `~/.config/rho/permission.toml` and prompts
-interactively for everything else:
+Presents a selectable list of options with preview descriptions:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 101,
+  "method": "host/ui/select",
+  "params": {
+    "title": "Choose Target",
+    "options": [
+      { "label": "Development", "description": "Local dev cluster" },
+      { "label": "Production", "description": "Live production database" }
+    ],
+    "allow_custom": true
+  }
+}
+```
+
+Host response:
+
+```json
+{ "jsonrpc": "2.0", "id": 101, "result": { "selected": 0, "cancelled": false } }
+```
+
+### 3. `host/ui/notify`
+
+Emits a notice into the terminal transcript:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 102,
+  "method": "host/ui/notify",
+  "params": {
+    "message": "Quota usage: 85%",
+    "level": "warning"
+  }
+}
+```
+
+_Note: In headless/non-interactive mode (`has_ui == false`), confirmation and
+input requests fail closed (`confirmed: false`, `cancelled: true`)
+automatically._
+
+---
+
+## 5. Building Plugins with `rho-plugin-sdk` (Rust)
+
+For Rust developers, the official
+[`rho-plugin-sdk`](https://crates.io/crates/rho-plugin-sdk) eliminates all
+protocol boilerplate:
 
 ```toml
-[allow]
-bash = ["git *", "cargo *", "npm run *"]
-edit = ["*"]
-
-[deny]
-bash = ["rm -rf *", "git push --force *"]
+[dependencies]
+rho-plugin-sdk = "0.1.3"
+async-trait = "0.1"
+tokio = { version = "1.43", features = ["macros", "rt-multi-thread"] }
 ```
 
-Install:
+```rust
+use async_trait::async_trait;
+use rho_plugin_sdk::{Flow, HostContext, Plugin, StepEvent, serve};
 
-```sh
-rho plugin install rho-plugin-permission
+struct MyGuard;
+
+#[async_trait]
+impl Plugin for MyGuard {
+    fn name(&self) -> &str {
+        "my-guard"
+    }
+
+    async fn on_event(&self, event: StepEvent, ctx: &HostContext) -> Flow {
+        match event {
+            StepEvent::ToolCall { tool_name, args } => {
+                if tool_name == "bash" && args.get("command").unwrap().contains("sudo") {
+                    let ok = ctx.confirm("Security Gate", "Allow sudo?").await;
+                    if !ok {
+                        return Flow::skip("Permission denied by user. Do not retry.");
+                    }
+                }
+                Flow::cont()
+            }
+            _ => Flow::cont(),
+        }
+    }
+}
+
+#[tokio::main]
+async fn main() {
+    serve(MyGuard).await;
+}
 ```
 
-This runs `cargo install` (crates.io, or pass a git URL to build from source:
-`rho plugin install https://github.com/casonadams/rho-plugin-permission`), then
-registers `[plugins.rho-plugin-permission]` with `command =
-"rho-plugin-permission"` in your `config.toml`. `rho plugin remove
-rho-plugin-permission` reverses it (config entry plus `cargo uninstall`).
+---
 
-Alternatively, download the binary from the
-[releases page](https://github.com/casonadams/rho-plugin-permission/releases),
-extract it to `~/.config/rho/plugins/`, and add the plugin to `config.toml`
-with an absolute `path` (or add `~/.config/rho/plugins` to your `PATH` and use
-`command`).
+## 6. Examples in Other Languages
 
-See the
-[plugin README](https://github.com/casonadams/rho-plugin-permission#readme)
-for rule syntax and the full permission workflow.
+Check [`examples/plugins/`](../examples/plugins/):
+
+- **Python**:
+  [`examples/plugins/python-guard/guard.py`](../examples/plugins/python-guard/guard.py)
+- **Node.js**:
+  [`examples/plugins/node-notifier/notifier.js`](../examples/plugins/node-notifier/notifier.js)
+- **Rust**: [`examples/plugins/rust-guard/`](../examples/plugins/rust-guard/)
