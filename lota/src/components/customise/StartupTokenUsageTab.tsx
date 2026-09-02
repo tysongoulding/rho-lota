@@ -1,4 +1,4 @@
-import { Coins, Layers, Shield, Sparkles, Cpu, Check, Info } from "lucide-react";
+import { Coins, PlugZap, ToyBrick, Shield, Sparkles, Cpu, Check, Info } from "lucide-react";
 
 export function StartupTokenUsageTab() {
   const startupItems = [
@@ -34,7 +34,7 @@ export function StartupTokenUsageTab() {
     },
     {
       category: "MCP Tool Schemas (Eager & Lazy)",
-      icon: Layers,
+      icon: PlugZap,
       color: "text-emerald-400",
       tokens: 1450,
       description: "JSON Schema definitions for lazy-loaded tools (GitHub, Context-Mode, Google-Workspace).",
@@ -44,7 +44,7 @@ export function StartupTokenUsageTab() {
     },
     {
       category: "Daemon Plugin Descriptors",
-      icon: Coins,
+      icon: ToyBrick,
       color: "text-yellow-400",
       tokens: 280,
       description: "Hook manifests for background notification daemons and execution guards.",

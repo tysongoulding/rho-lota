@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Layers, CheckCircle2, ChevronDown, ChevronRight, Server, Wrench, FileCode } from "lucide-react";
+import { PlugZap, CheckCircle2, ChevronDown, ChevronRight, Server, Wrench, FileCode } from "lucide-react";
 
 export function McpsCustomiseTab() {
   const [expandedServer, setExpandedServer] = useState<string>("github");
@@ -91,7 +91,7 @@ export function McpsCustomiseTab() {
     <div className="flex-1 overflow-y-auto p-5 space-y-5 max-w-5xl mx-auto text-xs text-[#c9d1d9]">
       <div>
         <h2 className="text-sm font-semibold text-white mb-1 flex items-center space-x-2">
-          <Layers className="w-4 h-4 text-emerald-400" />
+          <PlugZap className="w-4 h-4 text-emerald-400" />
           <span>Model Context Protocol (MCP) Servers & Schemas</span>
         </h2>
         <p className="text-[#8b949e]">

@@ -1,4 +1,4 @@
-import { Puzzle, CheckCircle2, ShieldCheck, Bell, Sparkles } from "lucide-react";
+import { ToyBrick, CheckCircle2, ShieldCheck, Bell, Sparkles } from "lucide-react";
 
 export function PluginsCustomiseTab() {
   const plugins = [
@@ -8,7 +8,7 @@ export function PluginsCustomiseTab() {
       version: "v0.1.5",
       type: "Core Rust Workspace Crate",
       status: "Active (Compiled)",
-      icon: Puzzle,
+      icon: ToyBrick,
       color: "text-blue-400",
       description: "Native Rust daemon plugin runtime and RPC lifecycle event dispatch engine.",
       capabilities: ["Process Hooking", "Event Interception", "IPC Protocol"],
@@ -52,7 +52,7 @@ export function PluginsCustomiseTab() {
       version: "v3.1.0",
       type: "Multi-Agent Protocol",
       status: "Active",
-      icon: Puzzle,
+      icon: ToyBrick,
       color: "text-pink-400",
       description: "Autonomous virtual engineering teams: intake, architecture, TDD build, and release notes.",
       capabilities: ["Strict Red-First TDD", "Defect Catalogs", "Release Logs"],
@@ -63,7 +63,7 @@ export function PluginsCustomiseTab() {
     <div className="flex-1 overflow-y-auto p-5 space-y-5 max-w-5xl mx-auto text-xs text-[#c9d1d9]">
       <div>
         <h2 className="text-sm font-semibold text-white mb-1 flex items-center space-x-2">
-          <Puzzle className="w-4 h-4 text-blue-400" />
+          <ToyBrick className="w-4 h-4 text-blue-400" />
           <span>Installed Plugins & Extension SDKs</span>
         </h2>
         <p className="text-[#8b949e]">
