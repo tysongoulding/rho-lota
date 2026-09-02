@@ -14,7 +14,7 @@ import { StreamingWorkbench } from "./components/workbench/StreamingWorkbench";
 import { WorkspaceExplorer } from "./components/workspace/WorkspaceExplorer";
 import { AgentInspector } from "./components/agent/AgentInspector";
 import { ToolboxManager } from "./components/agent/ToolboxManager";
-import { ModelProviderPicker } from "./components/agent/ModelProviderPicker";
+import { ModelProviderSettingsView } from "./components/settings/ModelProviderSettingsView";
 import { StructuredPlanView } from "./components/artifacts/StructuredPlanView";
 import { SessionGraphViewer } from "./components/dag/SessionGraphViewer";
 import { AppearanceSettings } from "./components/settings/AppearanceSettings";
@@ -73,7 +73,7 @@ export default function App() {
           {activeView === "tools" && <ToolboxManager />}
           {activeView === "plans" && <StructuredPlanView />}
           {activeView === "sessions" && <SessionGraphViewer />}
-          {activeView === "settings" && <ModelProviderPicker />}
+          {activeView === "settings" && <ModelProviderSettingsView />}
           {activeView === "appearance" && <AppearanceSettings />}
         </main>
 
