@@ -1,154 +1,27 @@
 import React, { useState, useEffect, useRef } from "react";
 import { rhoClient } from "./lib/rpc";
-import { RpcEvent } from "./lib/protocol";
-import { Send, Square, Play, Terminal, ShieldAlert, Cpu } from "lucide-react";
-
-interface Message {
-  id: string;
-  role: "user" | "assistant" | "system" | "tool";
-  content: string;
-  toolCall?: {
-    tool: string;
-    arguments: Record<string, unknown>;
-    output?: string;
-    isError?: boolean;
-  };
-  reasoning?: string;
-}
+import { useSessionStore } from "./store/sessionStore";
+import { Send, Square, Terminal, ShieldAlert, Cpu } from "lucide-react";
 
 export default function App() {
-  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [isRunning, setIsRunning] = useState(false);
-  const [sessionInfo, setSessionInfo] = useState<{ id?: string; model?: string; provider?: string }>({});
-  const [usage, setUsage] = useState<{ inputTokens?: number; outputTokens?: number; contextPercent?: number }>({});
-  const [pendingApproval, setPendingApproval] = useState<{
-    approvalId: string;
-    tool: string;
-    args: Record<string, unknown>;
-    desc?: string;
-  } | null>(null);
-
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const {
+    isRunning,
+    sessionInfo,
+    usage,
+    messages,
+    pendingApproval,
+    handleEvent,
+    addUserMessage,
+    clearPendingApproval,
+  } = useSessionStore();
+
   useEffect(() => {
-    const unsub = rhoClient.onEvent((event: RpcEvent) => {
-      switch (event.type) {
-        case "session_start":
-          setSessionInfo({
-            id: event.session_id,
-            model: event.model,
-            provider: event.provider,
-          });
-          break;
-
-        case "turn_start":
-          setIsRunning(true);
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: `turn-${event.turn_number}`,
-              role: "assistant",
-              content: "",
-            },
-          ]);
-          break;
-
-        case "text_chunk":
-          setMessages((prev) => {
-            if (prev.length === 0) return prev;
-            const updated = [...prev];
-            const last = { ...updated[updated.length - 1] };
-            if (last.role === "assistant") {
-              last.content += event.content;
-              updated[updated.length - 1] = last;
-            }
-            return updated;
-          });
-          break;
-
-        case "reasoning_chunk":
-          setMessages((prev) => {
-            if (prev.length === 0) return prev;
-            const updated = [...prev];
-            const last = { ...updated[updated.length - 1] };
-            if (last.role === "assistant") {
-              last.reasoning = (last.reasoning || "") + event.content;
-              updated[updated.length - 1] = last;
-            }
-            return updated;
-          });
-          break;
-
-        case "tool_approval_request":
-          setPendingApproval({
-            approvalId: event.approval_id,
-            tool: event.tool,
-            args: event.arguments,
-            desc: event.description,
-          });
-          break;
-
-        case "tool_call_start":
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: `tool-${event.call_id}`,
-              role: "tool",
-              content: "",
-              toolCall: {
-                tool: event.tool,
-                arguments: event.arguments,
-              },
-            },
-          ]);
-          break;
-
-        case "tool_call_result":
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === `tool-${event.call_id}`
-                ? {
-                    ...msg,
-                    toolCall: {
-                      ...msg.toolCall!,
-                      output: event.output,
-                      isError: event.is_error,
-                    },
-                  }
-                : msg
-            )
-          );
-          break;
-
-        case "usage_update":
-          setUsage({
-            inputTokens: event.input_tokens,
-            outputTokens: event.output_tokens,
-            contextPercent: event.context_percent,
-          });
-          break;
-
-        case "turn_end":
-          setIsRunning(false);
-          break;
-
-        case "error":
-          setIsRunning(false);
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: `err-${Date.now()}`,
-              role: "system",
-              content: `Error [${event.code}]: ${event.message}`,
-            },
-          ]);
-          break;
-      }
-    });
-
+    const unsub = rhoClient.onEvent(handleEvent);
     return () => unsub();
-  }, []);
+  }, [handleEvent]);
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -157,21 +30,16 @@ export default function App() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isRunning) return;
-
     const userMsg = input.trim();
     setInput("");
-    setMessages((prev) => [
-      ...prev,
-      { id: `user-${Date.now()}`, role: "user", content: userMsg },
-    ]);
-
+    addUserMessage(userMsg);
     await rhoClient.prompt(userMsg);
   };
 
   const handleApproval = async (decision: "allow" | "deny") => {
     if (!pendingApproval) return;
     await rhoClient.respondToTool(pendingApproval.approvalId, decision);
-    setPendingApproval(null);
+    clearPendingApproval();
   };
 
   return (
@@ -190,7 +58,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* Stats bar */}
         <div className="flex items-center space-x-4 text-xs text-[#8b949e]">
           {usage.contextPercent !== undefined && (
             <div className="flex items-center space-x-1.5">
@@ -206,7 +73,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main message feed */}
+      {/* Main Message Stream */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center text-[#8b949e]">
@@ -218,9 +85,7 @@ export default function App() {
         {messages.map((msg) => (
           <div
             key={msg.id}
-            className={`flex flex-col ${
-              msg.role === "user" ? "items-end" : "items-start"
-            }`}
+            className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
           >
             {msg.role === "user" ? (
               <div className="bg-[#1f6feb] text-white px-4 py-2.5 rounded-lg max-w-[80%] text-sm whitespace-pre-wrap">
@@ -266,7 +131,7 @@ export default function App() {
         <div ref={scrollRef} />
       </div>
 
-      {/* Human-in-the-loop Approval Modal */}
+      {/* Human-in-the-Loop Approval Modal */}
       {pendingApproval && (
         <div className="mx-4 mb-3 p-3 bg-[#21262d] border border-yellow-600/50 rounded-lg flex items-center justify-between text-xs">
           <div className="flex items-center space-x-2">
@@ -293,7 +158,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Input bar */}
+      {/* Input Bar */}
       <div className="p-4 border-t border-[#30363d] bg-[#161b22]">
         <form onSubmit={handleSubmit} className="flex items-center space-x-2">
           <input
