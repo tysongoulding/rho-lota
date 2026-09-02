@@ -19,8 +19,26 @@ export interface PresetTheme {
 
 export const THEME_PRESETS: PresetTheme[] = [
   {
+    id: "default",
+    name: "Default (Rho)",
+    dark: {
+      background: "#101010",
+      foreground: "#cccccc",
+      card: "#181818",
+      border: "#282828",
+      accent: "#007acc",
+    },
+    light: {
+      background: "#F9F9F9",
+      foreground: "#101010",
+      card: "#ffffff",
+      border: "#e5e5e5",
+      accent: "#007acc",
+    },
+  },
+  {
     id: "github",
-    name: "GitHub Default",
+    name: "GitHub",
     dark: {
       background: "#0d1117",
       foreground: "#c9d1d9",
@@ -116,7 +134,7 @@ function loadInitialState() {
 
 const initial = loadInitialState() || {
   mode: "dark" as ThemeMode,
-  preset: "github",
+  preset: "default",
   darkColors: THEME_PRESETS[0].dark,
   lightColors: THEME_PRESETS[0].light,
 };
