@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useUiStore } from "../../store/uiStore";
 import { useSessionStore } from "../../store/sessionStore";
 import { useChatStore } from "../../store/chatStore";
 import { useSubagentStore, SubagentDefinition } from "../../store/subagentStore";
 import { SubagentDetailModal } from "../agent/SubagentDetailModal";
+import { RenameSubagentModal } from "../modals/RenameSubagentModal";
 import { useToastStore } from "../../store/toastStore";
 import {
   User,
@@ -21,6 +22,10 @@ import {
   Search,
   X,
   GitBranch,
+  MoreVertical,
+  Edit2,
+  SlidersHorizontal,
+  Copy,
 } from "lucide-react";
 
 export function Sidebar() {
@@ -32,19 +37,48 @@ export function Sidebar() {
     setNewChatModalOpen,
   } = useUiStore();
   const { sessionInfo, resetSession } = useSessionStore();
-  const { chats, activeChatId, switchChat, deleteChat } = useChatStore();
-  const { subagents } = useSubagentStore();
+  const { chats, activeChatId, switchChat, deleteChat, createChat } = useChatStore();
+  const {
+    subagents,
+    activeChatAgentId,
+    setActiveChatAgentId,
+    cloneSubagent,
+    deleteSubagent,
+  } = useSubagentStore();
   const { addToast } = useToastStore();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [agentsExpanded, setAgentsExpanded] = useState(true);
   const [chatsExpanded, setChatsExpanded] = useState(true);
-  const [selectedSubagent, setSelectedSubagent] = useState<SubagentDefinition | null>(null);
+
+  // Modals & Menu State
+  const [editingSubagent, setEditingSubagent] = useState<SubagentDefinition | null>(null);
+  const [renamingSubagent, setRenamingSubagent] = useState<SubagentDefinition | null>(null);
+  const [menuSubagentId, setMenuSubagentId] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close context dropdown on outside click
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuSubagentId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
 
   if (!sidebarOpen) return null;
 
-  const handleSelectSubagent = (subagent: SubagentDefinition) => {
-    setSelectedSubagent(subagent);
+  // 1. Direct Chat with Sub-Agent
+  const handleChatWithSubagent = (agent: SubagentDefinition) => {
+    setActiveChatAgentId(agent.id);
+    // Create or switch to dedicated chat with this agent
+    const newChatId = createChat(`@${agent.name} • ${agent.role}`);
+    switchChat(newChatId);
+    resetSession();
+    setActiveView("chat");
+    addToast(`Started chat with agent: ${agent.name}`, "info");
   };
 
   const handleSelectChat = (chatId: string) => {
@@ -57,6 +91,35 @@ export function Sidebar() {
     e.stopPropagation();
     deleteChat(chatId);
     addToast(`Deleted chat: ${chatTitle}`, "info");
+  };
+
+  // Subagent Actions
+  const handleClone = (e: React.MouseEvent, agent: SubagentDefinition) => {
+    e.stopPropagation();
+    setMenuSubagentId(null);
+    const cloned = cloneSubagent(agent.id);
+    if (cloned) {
+      addToast(`Cloned sub-agent to: ${cloned.name}`, "success");
+    }
+  };
+
+  const handleOpenEdit = (e: React.MouseEvent, agent: SubagentDefinition) => {
+    e.stopPropagation();
+    setMenuSubagentId(null);
+    setEditingSubagent(agent);
+  };
+
+  const handleOpenRename = (e: React.MouseEvent, agent: SubagentDefinition) => {
+    e.stopPropagation();
+    setMenuSubagentId(null);
+    setRenamingSubagent(agent);
+  };
+
+  const handleDeleteSubagent = (e: React.MouseEvent, agent: SubagentDefinition) => {
+    e.stopPropagation();
+    setMenuSubagentId(null);
+    deleteSubagent(agent.id);
+    addToast(`Deleted sub-agent: ${agent.name}`, "info");
   };
 
   // Filter subagents and chats by search query
@@ -72,7 +135,7 @@ export function Sidebar() {
   );
 
   return (
-    <aside className="w-60 border-r border-[#30363d] bg-[#0d1117] flex flex-col h-full text-xs select-none flex-shrink-0">
+    <aside className="w-64 border-r border-[#30363d] bg-[#0d1117] flex flex-col h-full text-xs select-none flex-shrink-0">
       {/* Top Action Buttons */}
       <div className="p-3 border-b border-[#30363d] space-y-2 flex-shrink-0">
         {/* New Standalone Sub-Agent Button */}
@@ -96,7 +159,7 @@ export function Sidebar() {
         </button>
       </div>
 
-      {/* Feature Links Section (Customise, Artifacts, Automation as distinct Views) */}
+      {/* Feature Navigation Views */}
       <div className="p-2 space-y-1 flex-shrink-0">
         <button
           onClick={() => setActiveView("customise")}
@@ -178,7 +241,7 @@ export function Sidebar() {
                 <ChevronRight className="w-3.5 h-3.5 text-[#8b949e]" />
               )}
               <span>Sub-Agents</span>
-              <span className="text-[10px] font-mono text-[#8b949e] ml-1">({filteredSubagents.length})</span>
+              <span className="text-[10px] text-[#8b949e] ml-1">({filteredSubagents.length})</span>
             </div>
 
             <button
@@ -194,39 +257,114 @@ export function Sidebar() {
           </div>
 
           {agentsExpanded && (
-            <div className="space-y-0.5 pl-2 animate-in fade-in duration-100">
+            <div className="space-y-0.5 pl-1 animate-in fade-in duration-100">
               {filteredSubagents.length === 0 ? (
                 <div className="px-2 py-2 text-[10px] text-[#8b949e] italic">No sub-agents found</div>
               ) : (
-                filteredSubagents.map((agent) => (
-                  <button
-                    key={agent.id}
-                    onClick={() => handleSelectSubagent(agent)}
-                    className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg transition text-left group text-[#c9d1d9] hover:bg-[#161b22] border border-transparent hover:border-[#30363d]"
-                  >
-                    <div className="flex items-center space-x-2 truncate mr-1">
-                      <div className="relative flex-shrink-0">
-                        <Bot className="w-3.5 h-3.5 text-purple-400" />
-                        <span
-                          className={`absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full ${
-                            agent.state === "running" ? "bg-yellow-400 animate-pulse" : "bg-emerald-500"
-                          }`}
-                        />
-                      </div>
-                      <div className="truncate">
-                        <div className="truncate text-xs font-mono font-medium text-white">{agent.name}</div>
-                        <div className="text-[10px] text-[#8b949e] truncate leading-tight flex items-center space-x-1">
-                          {agent.workspaceMode === "branch" && <GitBranch className="w-2.5 h-2.5 text-cyan-400" />}
-                          <span className="truncate">{agent.role}</span>
+                filteredSubagents.map((agent) => {
+                  const isChattingWithThisAgent =
+                    activeChatAgentId === agent.id && activeView === "chat";
+                  const isMenuOpen = menuSubagentId === agent.id;
+
+                  return (
+                    <div
+                      key={agent.id}
+                      className={`relative w-full flex items-center justify-between px-2 py-1.5 rounded-lg transition group cursor-pointer ${
+                        isChattingWithThisAgent
+                          ? "bg-purple-950/40 text-purple-200 border border-purple-800/60"
+                          : "text-[#c9d1d9] hover:bg-[#161b22] border border-transparent hover:border-[#30363d]"
+                      }`}
+                      onClick={() => handleChatWithSubagent(agent)}
+                      title={`Click to chat with ${agent.name}`}
+                    >
+                      {/* Left: Bot Icon + Name & Role */}
+                      <div className="flex items-center space-x-2 truncate mr-1">
+                        <div className="relative flex-shrink-0">
+                          <Bot
+                            className={`w-3.5 h-3.5 ${
+                              isChattingWithThisAgent ? "text-purple-400" : "text-purple-300"
+                            }`}
+                          />
+                          <span
+                            className={`absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full ${
+                              agent.state === "running"
+                                ? "bg-yellow-400 animate-pulse"
+                                : "bg-emerald-500"
+                            }`}
+                          />
+                        </div>
+                        <div className="truncate">
+                          <div className="truncate text-xs font-medium text-white">{agent.name}</div>
+                          <div className="text-[10px] text-[#8b949e] truncate leading-tight flex items-center space-x-1">
+                            {agent.workspaceMode === "branch" && (
+                              <GitBranch className="w-2.5 h-2.5 text-cyan-400" />
+                            )}
+                            <span className="truncate">{agent.role}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <span className="text-[9px] font-mono text-purple-300/70 bg-[#0d1117] px-1 py-0.2 rounded border border-[#30363d] flex-shrink-0 uppercase">
-                      {agent.workspaceMode}
-                    </span>
-                  </button>
-                ))
+                      {/* Right: Triple Vertical Dot Menu Button */}
+                      <div className="flex items-center space-x-1 flex-shrink-0">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMenuSubagentId(isMenuOpen ? null : agent.id);
+                          }}
+                          className={`p-1 rounded hover:bg-[#21262d] text-[#8b949e] hover:text-white transition ${
+                            isMenuOpen ? "opacity-100 bg-[#21262d] text-white" : "opacity-0 group-hover:opacity-100"
+                          }`}
+                          title="Agent options (Rename, Edit, Clone, Delete)"
+                        >
+                          <MoreVertical className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      {/* Floating Context Menu */}
+                      {isMenuOpen && (
+                        <div
+                          ref={menuRef}
+                          onClick={(e) => e.stopPropagation()}
+                          className="absolute right-1 top-8 z-50 w-36 bg-[#161b22] border border-[#30363d] rounded-xl shadow-2xl py-1 text-xs select-none animate-in fade-in zoom-in-95 duration-100"
+                        >
+                          <button
+                            onClick={(e) => handleOpenRename(e, agent)}
+                            className="w-full flex items-center space-x-2 px-3 py-1.5 text-left text-[#c9d1d9] hover:bg-[#21262d] hover:text-white transition"
+                          >
+                            <Edit2 className="w-3.5 h-3.5 text-blue-400" />
+                            <span>Rename</span>
+                          </button>
+
+                          <button
+                            onClick={(e) => handleOpenEdit(e, agent)}
+                            className="w-full flex items-center space-x-2 px-3 py-1.5 text-left text-[#c9d1d9] hover:bg-[#21262d] hover:text-white transition"
+                          >
+                            <SlidersHorizontal className="w-3.5 h-3.5 text-purple-400" />
+                            <span>Edit Agent</span>
+                          </button>
+
+                          <button
+                            onClick={(e) => handleClone(e, agent)}
+                            className="w-full flex items-center space-x-2 px-3 py-1.5 text-left text-[#c9d1d9] hover:bg-[#21262d] hover:text-white transition"
+                          >
+                            <Copy className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>Clone</span>
+                          </button>
+
+                          <div className="border-t border-[#30363d] my-1" />
+
+                          <button
+                            onClick={(e) => handleDeleteSubagent(e, agent)}
+                            className="w-full flex items-center space-x-2 px-3 py-1.5 text-left text-red-400 hover:bg-red-950/40 transition"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Delete</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
               )}
             </div>
           )}
@@ -245,7 +383,7 @@ export function Sidebar() {
                 <ChevronRight className="w-3.5 h-3.5 text-[#8b949e]" />
               )}
               <span>Chats</span>
-              <span className="text-[10px] font-mono text-[#8b949e] ml-1">({filteredChats.length})</span>
+              <span className="text-[10px] text-[#8b949e] ml-1">({filteredChats.length})</span>
             </div>
 
             <button
@@ -261,7 +399,7 @@ export function Sidebar() {
           </div>
 
           {chatsExpanded && (
-            <div className="space-y-0.5 pl-2 animate-in fade-in duration-100">
+            <div className="space-y-0.5 pl-1 animate-in fade-in duration-100">
               {filteredChats.length === 0 ? (
                 <div className="px-2 py-2 text-[10px] text-[#8b949e] italic">No chats found</div>
               ) : (
@@ -335,11 +473,19 @@ export function Sidebar() {
         </div>
       )}
 
-      {/* Standalone Subagent Detail Modal */}
-      {selectedSubagent && (
+      {/* Standalone Subagent Detail / Edit Modal */}
+      {editingSubagent && (
         <SubagentDetailModal
-          subagent={selectedSubagent}
-          onClose={() => setSelectedSubagent(null)}
+          subagent={editingSubagent}
+          onClose={() => setEditingSubagent(null)}
+        />
+      )}
+
+      {/* Rename Subagent Modal */}
+      {renamingSubagent && (
+        <RenameSubagentModal
+          subagent={renamingSubagent}
+          onClose={() => setRenamingSubagent(null)}
         />
       )}
     </aside>

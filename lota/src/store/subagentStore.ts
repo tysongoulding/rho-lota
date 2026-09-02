@@ -113,10 +113,14 @@ export const DEFAULT_SUBAGENTS: SubagentDefinition[] = [
 interface SubagentState {
   subagents: SubagentDefinition[];
   selectedSubagentId: string | null;
-  addSubagent: (agent: Omit<SubagentDefinition, "id" | "createdAt" | "state">) => void;
+  activeChatAgentId: string | null;
+  addSubagent: (agent: Omit<SubagentDefinition, "id" | "createdAt" | "state">) => SubagentDefinition;
   updateSubagent: (id: string, updates: Partial<SubagentDefinition>) => void;
+  renameSubagent: (id: string, newName: string) => void;
+  cloneSubagent: (id: string) => SubagentDefinition | null;
   deleteSubagent: (id: string) => void;
   setSelectedSubagentId: (id: string | null) => void;
+  setActiveChatAgentId: (id: string | null) => void;
   setSubagentState: (id: string, state: SubagentDefinition["state"], detail?: string) => void;
 }
 
@@ -130,24 +134,27 @@ const loadInitialSubagents = (): SubagentDefinition[] => {
   return DEFAULT_SUBAGENTS;
 };
 
-export const useSubagentStore = create<SubagentState>((set) => ({
+export const useSubagentStore = create<SubagentState>((set, get) => ({
   subagents: loadInitialSubagents(),
   selectedSubagentId: null,
+  activeChatAgentId: null,
 
-  addSubagent: (agent) =>
+  addSubagent: (agent) => {
+    const newAgent: SubagentDefinition = {
+      ...agent,
+      id: `sub-${Date.now()}`,
+      state: "idle",
+      createdAt: new Date().toISOString(),
+    };
     set((state) => {
-      const newAgent: SubagentDefinition = {
-        ...agent,
-        id: `sub-${Date.now()}`,
-        state: "idle",
-        createdAt: new Date().toISOString(),
-      };
       const updated = [newAgent, ...state.subagents];
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       } catch {}
       return { subagents: updated };
-    }),
+    });
+    return newAgent;
+  },
 
   updateSubagent: (id, updates) =>
     set((state) => {
@@ -158,6 +165,40 @@ export const useSubagentStore = create<SubagentState>((set) => ({
       return { subagents: updated };
     }),
 
+  renameSubagent: (id, newName) =>
+    set((state) => {
+      const cleanName = newName.trim().toLowerCase().replace(/\s+/g, "-");
+      const updated = state.subagents.map((a) => (a.id === id ? { ...a, name: cleanName } : a));
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      } catch {}
+      return { subagents: updated };
+    }),
+
+  cloneSubagent: (id) => {
+    const target = get().subagents.find((a) => a.id === id);
+    if (!target) return null;
+
+    const cloned: SubagentDefinition = {
+      ...target,
+      id: `sub-${Date.now()}`,
+      name: `${target.name}-copy`,
+      role: `${target.role} (Copy)`,
+      state: "idle",
+      createdAt: new Date().toISOString(),
+    };
+
+    set((state) => {
+      const updated = [cloned, ...state.subagents];
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      } catch {}
+      return { subagents: updated };
+    });
+
+    return cloned;
+  },
+
   deleteSubagent: (id) =>
     set((state) => {
       const updated = state.subagents.filter((a) => a.id !== id);
@@ -167,10 +208,12 @@ export const useSubagentStore = create<SubagentState>((set) => ({
       return {
         subagents: updated,
         selectedSubagentId: state.selectedSubagentId === id ? null : state.selectedSubagentId,
+        activeChatAgentId: state.activeChatAgentId === id ? null : state.activeChatAgentId,
       };
     }),
 
   setSelectedSubagentId: (id) => set({ selectedSubagentId: id }),
+  setActiveChatAgentId: (id) => set({ activeChatAgentId: id }),
 
   setSubagentState: (id, stateVal, detail) =>
     set((state) => {
