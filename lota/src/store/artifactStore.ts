@@ -2,8 +2,8 @@ import { create } from "zustand";
 
 export interface ArtifactItem {
   id: string;
-  name: string; // e.g., "interactive_dashboard.html"
-  extension: string; // "html", "md", "json", "sql", "svg", "ts"
+  name: string;
+  extension: string;
   language: string;
   content: string;
   summary: string;
@@ -13,6 +13,79 @@ export interface ArtifactItem {
 }
 
 const DEFAULT_ARTIFACTS: ArtifactItem[] = [
+  {
+    id: "art-rust",
+    name: "rust_async_engine.md",
+    extension: "md",
+    language: "markdown",
+    summary: "Rust asynchronous Tokio event bus, zero-copy buffer pipeline, and GitHub alerts specification.",
+    userFacing: true,
+    createdAt: new Date(Date.now() - 3600000 * 1).toISOString(),
+    updatedAt: new Date(Date.now() - 3600000 * 1).toISOString(),
+    content: `# High-Performance Rust Asynchronous Pipeline
+
+A high-throughput Tokio event loop and state machine architecture powering Rho Lota.
+
+> [!NOTE]
+> All HTTP client builders reuse static \`LazyLock\` instances with \`.no_proxy()\` to prevent macOS \`SCDynamicStoreCopyProxies\` lockups in parallel tests.
+
+## 1. Rust Tokio Channel Handler
+
+\`\`\`rust
+use std::sync::Arc;
+use tokio::sync::mpsc::{channel, Receiver, Sender};
+use tokio::task::JoinHandle;
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct StreamChunk {
+    pub turn_id: String,
+    pub delta: String,
+    pub tokens_used: usize,
+}
+
+pub struct AsyncEventLoop {
+    tx: Sender<StreamChunk>,
+    rx: Option<Receiver<StreamChunk>>,
+}
+
+impl AsyncEventLoop {
+    pub fn new(capacity: usize) -> Self {
+        let (tx, rx) = channel(capacity);
+        Self { tx, rx: Some(rx) }
+    }
+
+    pub async fn dispatch(&self, chunk: StreamChunk) -> Result<(), String> {
+        self.tx.send(chunk).await.map_err(|e| e.to_string())
+    }
+}
+\`\`\`
+
+> [!TIP]
+> Use \`cargo nextest run\` for parallel test execution feedback during rapid inner-loop iterations.
+
+## 2. Performance Comparison Matrix
+
+| Layer | Engine | Latency (p99) | Throughput | Zero-Copy |
+| :--- | :--- | :---: | :---: | :---: |
+| **Transport** | Unix Socket IPC | \`0.42 ms\` | 185k msg/s | ✅ Enabled |
+| **Parser** | \`simd-json\` | \`0.18 ms\` | 420 MB/s | ✅ Enabled |
+| **Token Counter** | \`tiktoken-rs\` | \`0.09 ms\` | 1.2M tok/s | ✅ LazyLock |
+
+## 3. Mathematical Formula for Turn Costs
+
+The context window compaction threshold is governed by KaTeX formula:
+
+$$C_{\text{turn}} = \sum_{i=1}^{N} \left( T_{\text{input}}^{(i)} \cdot R_{\text{in}} + T_{\text{output}}^{(i)} \cdot R_{\text{out}} \right)$$
+
+> [!IMPORTANT]
+> Files must strictly adhere to the ~150 lines target to ensure modular separation of concerns.
+
+## 4. Execution Checklist
+- [x] Integrate \`MarkviewRenderer\` with Shiki dual-theme Rust syntax highlighting
+- [x] Parse GitHub alert callouts (\`[!NOTE]\`, \`[!TIP]\`, \`[!IMPORTANT]\`, \`[!WARNING]\`, \`[!CAUTION]\`)
+- [x] Support full-width reading toggle and interactive outline TOC drawer
+- [ ] Connect live native \`cargo test\` runner daemon`,
+  },
   {
     id: "art-1",
     name: "interactive_dashboard.html",
@@ -96,35 +169,6 @@ const DEFAULT_ARTIFACTS: ArtifactItem[] = [
   </script>
 </body>
 </html>`,
-  },
-  {
-    id: "art-2",
-    name: "implementation_plan.md",
-    extension: "md",
-    language: "markdown",
-    summary: "Technical architectural implementation design for multi-agent autonomous tool execution and state recovery.",
-    userFacing: true,
-    createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-    updatedAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-    content: `# Multi-Agent Autonomous Execution Plan
-
-## 1. System Overview
-Implementation roadmap for establishing sandboxed background task execution, streaming workbench progress, and real-time state synchronization.
-
-### Key Objectives
-- **Zero-Latency Turn Streaming**: Direct SSE pipe from \`crates/rho-engine\` to React LotA front-end.
-- **Strict Red-First TDD**: Enforce red-to-green test cycles before committing code changes.
-- **Layered Memory Protocol**: Persistent defect cataloging and context retention.
-
-## 2. Proposed Changes
-- **\`src/store/uiStore.ts\`**: Router and viewport manager.
-- **\`src/components/artifacts/ArtifactPreviewModal.tsx\`**: 80% screen viewport live inspector.
-- **\`src/components/views/ArtifactsView.tsx\`**: Card-based artifact catalog.
-
-## 3. Verification Criteria
-- [x] All unit tests pass with \`cargo nextest run\`
-- [x] Bundle compiles with \`npm run build\` with 0 errors
-- [x] HTML artifacts render dynamically inside sandbox iframe`,
   },
   {
     id: "art-3",
@@ -246,7 +290,7 @@ interface ArtifactState {
   setSelectedArtifactId: (id: string | null) => void;
 }
 
-const STORAGE_KEY = "rho_lota_artifacts_v1";
+const STORAGE_KEY = "rho_lota_artifacts_v2";
 
 const loadInitialArtifacts = (): ArtifactItem[] => {
   try {

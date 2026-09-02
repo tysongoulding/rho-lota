@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { ArtifactItem, useArtifactStore } from "../../store/artifactStore";
 import { useToastStore } from "../../store/toastStore";
+import { MarkviewDocumentView } from "../markdown/MarkviewDocumentView";
+import { MarkviewRenderer } from "../markdown/MarkviewRenderer";
 import {
   X,
   Eye,
@@ -98,6 +100,7 @@ export function ArtifactPreviewModal({
   };
 
   const lineCount = editedCode.split("\n").length;
+  const isMarkdown = artifact.extension.toLowerCase() === "md";
 
   return (
     <div
@@ -156,10 +159,10 @@ export function ArtifactPreviewModal({
                     ? "bg-[#1f6feb] text-white shadow-sm"
                     : "text-[#8b949e] hover:text-white hover:bg-[#21262d]"
                 }`}
-                title="Rendered live preview (HTML/SVG/Markdown)"
+                title="Rendered live preview (HTML/SVG/MarkView)"
               >
                 <Eye className="w-3.5 h-3.5" />
-                <span>Live View</span>
+                <span>{isMarkdown ? "MarkView" : "Live View"}</span>
               </button>
 
               <button
@@ -250,9 +253,9 @@ export function ArtifactPreviewModal({
                 <div className="px-3 py-1.5 bg-[#161b22] border-b border-[#30363d] text-[10px] text-[#8b949e] font-mono flex items-center justify-between">
                   <span className="flex items-center space-x-1">
                     <Sparkles className="w-3 h-3 text-cyan-400" />
-                    <span>Live Rendered Output</span>
+                    <span>{isMarkdown ? "MarkView Rendered Output" : "Live Output"}</span>
                   </span>
-                  <span className="text-emerald-400">Sandbox Active</span>
+                  <span className="text-emerald-400">{isMarkdown ? "MarkView Engine" : "Sandbox Active"}</span>
                 </div>
                 <div className="flex-1 overflow-auto p-4">
                   {artifact.extension === "html" ? (
@@ -267,6 +270,10 @@ export function ArtifactPreviewModal({
                       className="w-full h-full flex items-center justify-center p-4 bg-[#161b22] rounded-xl border border-[#30363d]"
                       dangerouslySetInnerHTML={{ __html: editedCode }}
                     />
+                  ) : isMarkdown ? (
+                    <div className="p-4 bg-[#161b22] rounded-xl border border-[#30363d]">
+                      <MarkviewRenderer content={editedCode} showLineNumbers={false} />
+                    </div>
                   ) : (
                     <div className="p-4 bg-[#161b22] rounded-xl border border-[#30363d] font-mono text-xs text-[#c9d1d9] whitespace-pre-wrap">
                       {editedCode}
@@ -307,12 +314,8 @@ export function ArtifactPreviewModal({
                   className="w-full h-full flex items-center justify-center p-8 bg-[#0d1117] overflow-auto"
                   dangerouslySetInnerHTML={{ __html: editedCode }}
                 />
-              ) : artifact.extension === "md" ? (
-                <div className="flex-1 overflow-y-auto p-8 max-w-4xl mx-auto space-y-4">
-                  <div className="p-6 bg-[#161b22] rounded-2xl border border-[#30363d] text-[#c9d1d9] prose prose-invert max-w-none text-xs leading-relaxed whitespace-pre-wrap font-sans">
-                    {editedCode}
-                  </div>
-                </div>
+              ) : isMarkdown ? (
+                <MarkviewDocumentView content={editedCode} title={editedName} />
               ) : (
                 <div className="flex-1 overflow-y-auto p-6">
                   <pre className="p-5 bg-[#161b22] rounded-xl border border-[#30363d] font-mono text-xs text-[#c9d1d9] overflow-x-auto whitespace-pre-wrap">
