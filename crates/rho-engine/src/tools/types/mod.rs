@@ -108,21 +108,48 @@ fn clean_schema(value: &mut serde_json::Value) {
                     map.insert("type".to_string(), non_null[0].clone());
                 }
             }
-            if let Some(serde_json::Value::Array(arr)) = map.get("anyOf") {
+            if let Some(serde_json::Value::Array(arr)) = map.remove("anyOf") {
                 let non_null: Vec<_> = arr
-                    .iter()
+                    .into_iter()
                     .filter(|item| {
                         !(item.is_object()
                             && item.as_object().unwrap().get("type")
                                 == Some(&serde_json::Value::String("null".to_string())))
                     })
-                    .cloned()
                     .collect();
                 if non_null.len() == 1 {
                     let mut single = non_null[0].clone();
                     clean_schema(&mut single);
-                    *value = single;
-                    return;
+                    if let serde_json::Value::Object(single_map) = single {
+                        for (k, v) in single_map {
+                            map.insert(k, v);
+                        }
+                    } else {
+                        *value = single;
+                        return;
+                    }
+                }
+            }
+            if let Some(serde_json::Value::Array(arr)) = map.remove("oneOf") {
+                let non_null: Vec<_> = arr
+                    .into_iter()
+                    .filter(|item| {
+                        !(item.is_object()
+                            && item.as_object().unwrap().get("type")
+                                == Some(&serde_json::Value::String("null".to_string())))
+                    })
+                    .collect();
+                if non_null.len() == 1 {
+                    let mut single = non_null[0].clone();
+                    clean_schema(&mut single);
+                    if let serde_json::Value::Object(single_map) = single {
+                        for (k, v) in single_map {
+                            map.insert(k, v);
+                        }
+                    } else {
+                        *value = single;
+                        return;
+                    }
                 }
             }
             for subval in map.values_mut() {
