@@ -25,13 +25,11 @@ export function Sidebar() {
   const {
     sidebarOpen,
     activeView,
+    activeSettingsTab,
     setActiveView,
+    setActiveSettingsTab,
     setNewAgentModalOpen,
     setNewChatModalOpen,
-    setCustomiseModalOpen,
-    setArtifactsModalOpen,
-    setAutomationModalOpen,
-    setSettingsModalOpen,
   } = useUiStore();
   const { sessionInfo, resetSession } = useSessionStore();
   const { personas, activePersonaId, setActivePersona } = useAgentStore();
@@ -99,30 +97,51 @@ export function Sidebar() {
         </button>
       </div>
 
-      {/* Feature Links Section (Customise, Artifacts, Automation) */}
+      {/* Feature Links Section (Customise, Artifacts, Automation taking over Main View) */}
       <div className="p-2 space-y-1 flex-shrink-0">
         <button
-          onClick={() => setCustomiseModalOpen(true)}
-          className="w-full flex items-center space-x-2 px-2.5 py-1.5 rounded-lg transition text-left text-[#c9d1d9] hover:bg-[#161b22] hover:text-white"
-          title="Open Theme & Appearance Customiser"
+          onClick={() => {
+            setActiveSettingsTab("theme");
+            setActiveView("settings");
+          }}
+          className={`w-full flex items-center space-x-2 px-2.5 py-1.5 rounded-lg transition text-left ${
+            activeView === "settings" && activeSettingsTab === "theme"
+              ? "bg-[#1f6feb]/20 text-[#58a6ff] font-medium border border-blue-500/40"
+              : "text-[#c9d1d9] hover:bg-[#161b22] border border-transparent"
+          }`}
+          title="Appearance & Theme Customisation"
         >
           <WandSparkles className="w-4 h-4 text-pink-400" />
           <span>Customise</span>
         </button>
 
         <button
-          onClick={() => setArtifactsModalOpen(true)}
-          className="w-full flex items-center space-x-2 px-2.5 py-1.5 rounded-lg transition text-left text-[#c9d1d9] hover:bg-[#161b22] hover:text-white"
-          title="Open Artifacts & Plan Tracker"
+          onClick={() => {
+            setActiveSettingsTab("plans");
+            setActiveView("settings");
+          }}
+          className={`w-full flex items-center space-x-2 px-2.5 py-1.5 rounded-lg transition text-left ${
+            activeView === "settings" && activeSettingsTab === "plans"
+              ? "bg-[#1f6feb]/20 text-[#58a6ff] font-medium border border-blue-500/40"
+              : "text-[#c9d1d9] hover:bg-[#161b22] border border-transparent"
+          }`}
+          title="Artifacts & Structured Plan Tracker"
         >
           <Layers className="w-4 h-4 text-cyan-400" />
           <span>Artifacts</span>
         </button>
 
         <button
-          onClick={() => setAutomationModalOpen(true)}
-          className="w-full flex items-center space-x-2 px-2.5 py-1.5 rounded-lg transition text-left text-[#c9d1d9] hover:bg-[#161b22] hover:text-white"
-          title="Open Dynamic Tools & Automation"
+          onClick={() => {
+            setActiveSettingsTab("tools");
+            setActiveView("settings");
+          }}
+          className={`w-full flex items-center space-x-2 px-2.5 py-1.5 rounded-lg transition text-left ${
+            activeView === "settings" && activeSettingsTab === "tools"
+              ? "bg-[#1f6feb]/20 text-[#58a6ff] font-medium border border-blue-500/40"
+              : "text-[#c9d1d9] hover:bg-[#161b22] border border-transparent"
+          }`}
+          title="Dynamic Tools & Automation Workflows"
         >
           <Route className="w-4 h-4 text-emerald-400" />
           <span>Automation</span>
@@ -293,14 +312,21 @@ export function Sidebar() {
         </div>
       </div>
 
-      {/* Bottom Settings Button */}
+      {/* Bottom Settings Button (routes to Settings Hub in Main View) */}
       <div className="p-2 border-t border-[#30363d] bg-[#161b22]/50 flex-shrink-0">
         <button
-          onClick={() => setSettingsModalOpen(true)}
-          className="w-full flex items-center space-x-2 px-2.5 py-2 rounded-lg transition text-left text-[#c9d1d9] hover:bg-[#21262d] hover:text-white"
+          onClick={() => {
+            setActiveSettingsTab("general");
+            setActiveView("settings");
+          }}
+          className={`w-full flex items-center space-x-2 px-2.5 py-2 rounded-lg transition text-left ${
+            activeView === "settings" && activeSettingsTab === "general"
+              ? "bg-[#1f6feb]/20 text-[#58a6ff] font-medium border border-blue-500/40"
+              : "text-[#c9d1d9] hover:bg-[#21262d] hover:text-white border border-transparent"
+          }`}
           title="Open Settings & Preferences"
         >
-          <Settings className="w-4 h-4 text-[#8b949e]" />
+          <Settings className={`w-4 h-4 ${activeView === "settings" ? "text-[#58a6ff]" : "text-[#8b949e]"}`} />
           <span className="font-medium">Settings</span>
         </button>
       </div>

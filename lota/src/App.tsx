@@ -20,10 +20,6 @@ import { CommandPalette } from "./components/palette/CommandPalette";
 import { ToastContainer } from "./components/common/ToastContainer";
 import { NewChatModal } from "./components/modals/NewChatModal";
 import { NewAgentModal } from "./components/modals/NewAgentModal";
-import { CustomiseModal } from "./components/modals/CustomiseModal";
-import { ArtifactsModal } from "./components/modals/ArtifactsModal";
-import { AutomationModal } from "./components/modals/AutomationModal";
-import { SettingsModal } from "./components/modals/SettingsModal";
 
 export default function App() {
   const { messages, isRunning, addUserMessage } = useSessionStore();
@@ -99,10 +95,6 @@ export default function App() {
       <ToastContainer />
       <NewChatModal />
       <NewAgentModal />
-      <CustomiseModal />
-      <ArtifactsModal />
-      <AutomationModal />
-      <SettingsModal />
     </div>
   );
 }
