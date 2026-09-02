@@ -62,7 +62,7 @@ export default function App() {
   }, [isRunning, queue, dequeue, addUserMessage, prompt]);
 
   return (
-    <div className="flex flex-col h-screen w-screen bg-[#0d1117] text-[#c9d1d9] font-sans antialiased overflow-hidden select-none relative">
+    <div className="flex flex-col h-screen w-full bg-[#0d1117] text-[#c9d1d9] font-sans antialiased overflow-hidden select-none relative">
       {/* Drag & Drop Visual Overlay */}
       {isDragging && (
         <div className="absolute inset-0 bg-blue-600/10 border-2 border-dashed border-blue-500 z-50 pointer-events-none flex items-center justify-center backdrop-blur-[1px]">
@@ -74,10 +74,10 @@ export default function App() {
 
       <Titlebar />
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden min-w-0">
         <Sidebar />
 
-        <main className="flex-1 flex flex-col bg-[#0d1117] min-w-0">
+        <main className="flex-1 flex flex-col bg-[#0d1117] min-w-0 overflow-hidden">
           {activeView === "chat" && (
             <>
               <VirtualizedMessageFeed messages={messages} />
