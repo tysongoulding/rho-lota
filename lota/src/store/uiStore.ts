@@ -3,12 +3,18 @@ import { create } from "zustand";
 export type ActiveView =
   | "chat"
   | "files"
+  | "settings";
+
+export type SettingsTab =
+  | "general"
+  | "application"
   | "agents"
   | "tools"
   | "plans"
   | "sessions"
-  | "settings"
-  | "appearance";
+  | "providers"
+  | "theme"
+  | "billing";
 
 export type WorkbenchTab = "diff" | "thinking" | "file" | "json";
 
@@ -20,6 +26,7 @@ interface UiState {
   newChatModalOpen: boolean;
   newAgentModalOpen: boolean;
   activeView: ActiveView;
+  activeSettingsTab: SettingsTab;
   activeWorkbenchTab: WorkbenchTab;
   selectedSessionId: string | null;
 
@@ -34,6 +41,7 @@ interface UiState {
   setNewChatModalOpen: (open: boolean) => void;
   setNewAgentModalOpen: (open: boolean) => void;
   setActiveView: (view: ActiveView) => void;
+  setActiveSettingsTab: (tab: SettingsTab) => void;
   setActiveWorkbenchTab: (tab: WorkbenchTab) => void;
   setSelectedSessionId: (id: string | null) => void;
 }
@@ -46,6 +54,7 @@ export const useUiStore = create<UiState>((set) => ({
   newChatModalOpen: false,
   newAgentModalOpen: false,
   activeView: "chat",
+  activeSettingsTab: "general",
   activeWorkbenchTab: "diff",
   selectedSessionId: null,
 
@@ -60,6 +69,7 @@ export const useUiStore = create<UiState>((set) => ({
   setNewChatModalOpen: (open: boolean) => set({ newChatModalOpen: open }),
   setNewAgentModalOpen: (open: boolean) => set({ newAgentModalOpen: open }),
   setActiveView: (view: ActiveView) => set({ activeView: view }),
+  setActiveSettingsTab: (tab: SettingsTab) => set({ activeSettingsTab: tab }),
   setActiveWorkbenchTab: (tab: WorkbenchTab) => set({ activeWorkbenchTab: tab }),
   setSelectedSessionId: (id: string | null) => set({ selectedSessionId: id }),
 }));

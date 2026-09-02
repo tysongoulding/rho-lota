@@ -30,8 +30,14 @@ interface PaletteCommand {
 }
 
 export function CommandPalette() {
-  const { commandPaletteOpen, setCommandPaletteOpen, setActiveView, toggleSidebar, toggleWorkbench } =
-    useUiStore();
+  const {
+    commandPaletteOpen,
+    setCommandPaletteOpen,
+    setActiveView,
+    setActiveSettingsTab,
+    toggleSidebar,
+    toggleWorkbench,
+  } = useUiStore();
   const { resetSession } = useSessionStore();
   const { setActivePersona } = useAgentStore();
   const { addToast } = useToastStore();
@@ -63,7 +69,10 @@ export function CommandPalette() {
       label: "Manage Agent Personas",
       description: "Configure Rig agent prompts and personas",
       icon: Bot,
-      action: () => setActiveView("agents"),
+      action: () => {
+        setActiveSettingsTab("agents");
+        setActiveView("settings");
+      },
     },
     {
       id: "nav-tools",
@@ -71,7 +80,10 @@ export function CommandPalette() {
       label: "Dynamic Toolbox & MCP",
       description: "Inspect tools, permissions, and latency",
       icon: Wrench,
-      action: () => setActiveView("tools"),
+      action: () => {
+        setActiveSettingsTab("tools");
+        setActiveView("settings");
+      },
     },
     {
       id: "nav-plans",
@@ -79,7 +91,10 @@ export function CommandPalette() {
       label: "View Structured Plans",
       description: "Interactive Rig extractor task checklist",
       icon: ListTodo,
-      action: () => setActiveView("plans"),
+      action: () => {
+        setActiveSettingsTab("plans");
+        setActiveView("settings");
+      },
     },
     {
       id: "nav-sessions",
@@ -87,7 +102,10 @@ export function CommandPalette() {
       label: "Session DAG Graph",
       description: "Visual timeline of turns and branching checkpoints",
       icon: GitBranch,
-      action: () => setActiveView("sessions"),
+      action: () => {
+        setActiveSettingsTab("sessions");
+        setActiveView("settings");
+      },
     },
     {
       id: "nav-settings",
@@ -95,7 +113,10 @@ export function CommandPalette() {
       label: "AI Providers & API Keys",
       description: "Manage credentials and model backends",
       icon: Settings,
-      action: () => setActiveView("settings"),
+      action: () => {
+        setActiveSettingsTab("providers");
+        setActiveView("settings");
+      },
     },
     {
       id: "nav-appearance",
@@ -103,7 +124,10 @@ export function CommandPalette() {
       label: "Theme & Hex Colors",
       description: "Switch light/dark mode and presets",
       icon: Palette,
-      action: () => setActiveView("appearance"),
+      action: () => {
+        setActiveSettingsTab("theme");
+        setActiveView("settings");
+      },
     },
 
     // Actions
@@ -114,7 +138,8 @@ export function CommandPalette() {
       description: "Create or configure an agent persona",
       icon: User,
       action: () => {
-        setActiveView("agents");
+        setActiveSettingsTab("agents");
+        setActiveView("settings");
         addToast("Opened Agent Personas & Inspector", "info");
       },
     },

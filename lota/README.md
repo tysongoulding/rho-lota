@@ -17,21 +17,17 @@ Use this ASCII map to locate components for **MACD** (Move, Add, Change, Delete)
 ├─────────────────────┬────────────────────────────────────────────────────────────┬────────────────────────────────────┤
 │ [C-SIDEBAR]         │ [C-MAIN-VIEW] App.tsx Router                               │ [C-WORKBENCH]                      │
 │ Sidebar.tsx         │                                                            │ StreamingWorkbench.tsx             │
-│                     │  Active View: 'chat'                                       │                                    │
+│                     │  Active View: 'chat' / 'files' / 'settings'                │                                    │
 │ [New Agent]         │  ┌──────────────────────────────────────────────────────┐  │ Tabs:                              │
-│ [New Chat]          │  │ [C-FEED] VirtualizedMessageFeed.tsx                   │  │ [Diff] [File] [Thinking] [JSON]    │
-│ Workspace:          │  │  ├─ [C-USER-MSG] User turn bubble                    │  │ ─────────────────────────────── │
-│ • [Chat Feed]       │  │  ├─ [C-THINKING] ThinkingBlock.tsx (Reasoning)       │  │ • [C-DIFF-VIEWER]               │
-│ • [Files Explorer]  │  │  ├─ [C-MARKDOWN] MessageItem.tsx (react-markdown)    │  │   DiffViewer.tsx                │
-│ • [Agent Personas]  │  │  │   └─ [C-CODEBLOCK] CodeBlock.tsx (Shiki)          │  │ • [C-FILE-PREVIEW]              │
-│ • [Dynamic Tools]   │  │  └─ [C-ACTION-CARDS] ToolActionCard.tsx:             │  │   CodeBlock.tsx (Selected file) │
-│ • [Plan Tracker]    │  │      ├─ [C-BASH-CARD] BashTerminalCard.tsx           │  │ • [C-THINKING-STREAM]           │
-│ • [Session DAG]     │  │      ├─ [C-EDIT-CARD] FileEditCard.tsx               │  │   Full reasoning stream log     │
-│ • [Model Settings]  │  │      ├─ [C-WRITE-CARD] FileWriteCard.tsx             │  │ • [C-JSON-INSPECTOR]            │
-│ • [Theme & Colors]  │  │      ├─ [C-READ-CARD] FileReadCard.tsx               │  │   Raw turn payload viewer       │
-│                     │  │      ├─ [C-SEARCH-CARD] WebSearchCard.tsx            │  │                                 │
-│ [Session ID Badge]  │  │      ├─ [C-FETCH-CARD] WebFetchCard.tsx              │  │                                 │
-│                     │  │      └─ [C-MCP-CARD] McpToolCard.tsx                 │  │                                 │
+│ [New Chat]          │  │ [C-SETTINGS-HUB] SettingsHubView.tsx                 │  │ [Diff] [File] [Thinking] [JSON]    │
+│                     │  │  Horizontal Tabs:                                    │  │ ─────────────────────────────── │
+│ Workspace:          │  │  [General][App][Agents][Tools][Plans][DAG][AI][Theme]│  │ • [C-DIFF-VIEWER]               │
+│ • [Chat Feed]       │  │  ┌─────────────────────────────────────────────────┐ │  │   DiffViewer.tsx                │
+│ • [Files Explorer]  │  │  │ Sub-View Tab Panel Content                      │ │  │ • [C-FILE-PREVIEW]              │
+│                     │  │  └─────────────────────────────────────────────────┘ │  │   CodeBlock.tsx (Selected file) │
+│ ─────────────────── │  └──────────────────────────────────────────────────────┘  │ • [C-THINKING-STREAM]           │
+│ [⚙ Settings Button] │                                                            │   Full reasoning stream log     │
+│ [Session ID Badge]  │                                                            │ • [C-JSON-INSPECTOR]            │
 │                     │  │                                                      │  │                                 │
 │                     │  │ [C-APPROVAL-MODAL] ApprovalModal.tsx                 │  │                                 │
 │                     │  │ [C-QUEUE-BADGE] QueueBadge.tsx (FIFO turns)          │  │                                 │

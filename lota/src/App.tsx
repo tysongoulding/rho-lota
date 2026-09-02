@@ -15,12 +15,7 @@ import { QueueBadge } from "./components/editor/QueueBadge";
 import { PromptInput } from "./components/editor/PromptInput";
 import { StreamingWorkbench } from "./components/workbench/StreamingWorkbench";
 import { WorkspaceExplorer } from "./components/workspace/WorkspaceExplorer";
-import { AgentInspector } from "./components/agent/AgentInspector";
-import { ToolboxManager } from "./components/agent/ToolboxManager";
-import { ModelProviderSettingsView } from "./components/settings/ModelProviderSettingsView";
-import { StructuredPlanView } from "./components/artifacts/StructuredPlanView";
-import { SessionGraphViewer } from "./components/dag/SessionGraphViewer";
-import { AppearanceSettings } from "./components/settings/AppearanceSettings";
+import { SettingsHubView } from "./components/settings/SettingsHubView";
 import { CommandPalette } from "./components/palette/CommandPalette";
 import { ToastContainer } from "./components/common/ToastContainer";
 import { NewChatModal } from "./components/modals/NewChatModal";
@@ -89,12 +84,7 @@ export default function App() {
             </>
           )}
           {activeView === "files" && <WorkspaceExplorer />}
-          {activeView === "agents" && <AgentInspector />}
-          {activeView === "tools" && <ToolboxManager />}
-          {activeView === "plans" && <StructuredPlanView />}
-          {activeView === "sessions" && <SessionGraphViewer />}
-          {activeView === "settings" && <ModelProviderSettingsView />}
-          {activeView === "appearance" && <AppearanceSettings />}
+          {activeView === "settings" && <SettingsHubView />}
         </main>
 
         {activeView === "chat" && <StreamingWorkbench />}
