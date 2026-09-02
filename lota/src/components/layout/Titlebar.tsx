@@ -1,3 +1,4 @@
+import React from "react";
 import { useSessionStore, TurnPhase } from "../../store/sessionStore";
 import { useUiStore } from "../../store/uiStore";
 import { useWorkspaceStore } from "../../store/workspaceStore";
@@ -22,15 +23,34 @@ export function Titlebar() {
   const { toggleSidebar, toggleWorkbench, workbenchOpen, sidebarOpen } = useUiStore();
   const { workspacePath, gitBranch } = useWorkspaceStore();
 
-  const handleMinimize = () => {
+  const handleHeaderMouseDown = (e: React.MouseEvent) => {
+    if (e.buttons === 1 && e.detail === 1) {
+      const target = e.target as HTMLElement;
+      if (!target.closest("button") && !target.closest("input") && !target.closest("a")) {
+        invoke("start_drag_window").catch(() => {});
+      }
+    }
+  };
+
+  const handleHeaderDoubleClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (!target.closest("button") && !target.closest("input") && !target.closest("a")) {
+      invoke("toggle_maximize_window").catch(() => {});
+    }
+  };
+
+  const handleMinimize = (e: React.MouseEvent) => {
+    e.stopPropagation();
     invoke("minimize_window").catch(() => {});
   };
 
-  const handleMaximize = () => {
+  const handleMaximize = (e: React.MouseEvent) => {
+    e.stopPropagation();
     invoke("toggle_maximize_window").catch(() => {});
   };
 
-  const handleClose = () => {
+  const handleClose = (e: React.MouseEvent) => {
+    e.stopPropagation();
     invoke("close_window").catch(() => {});
   };
 
@@ -77,9 +97,14 @@ export function Titlebar() {
   };
 
   return (
-    <header className="flex items-center justify-between pl-3 pr-0 border-b border-[#30363d] bg-[#161b22] select-none text-xs h-9">
+    <header
+      data-tauri-drag-region
+      onMouseDown={handleHeaderMouseDown}
+      onDoubleClick={handleHeaderDoubleClick}
+      className="flex items-center justify-between pl-3 pr-0 border-b border-[#30363d] bg-[#161b22] select-none text-xs h-9 cursor-default"
+    >
       {/* Left Section: Logo & Name -> Sidebar Toggle -> Workspace Pill -> Model */}
-      <div className="flex items-center space-x-2.5 h-full z-10">
+      <div className="flex items-center space-x-2.5 h-full z-10" data-tauri-drag-region>
         {/* Logo & Company Name */}
         <div className="flex items-center space-x-2">
           <div className="flex items-center justify-center w-5 h-5 rounded bg-blue-600/20 text-blue-400 font-bold text-xs">
@@ -90,7 +115,10 @@ export function Titlebar() {
 
         {/* Sidebar Toggle Button (after Logo & Name) */}
         <button
-          onClick={toggleSidebar}
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleSidebar();
+          }}
           className={`p-1 rounded transition ${
             sidebarOpen ? "bg-[#21262d] text-white" : "text-[#8b949e] hover:text-white hover:bg-[#21262d]"
           }`}
@@ -113,11 +141,8 @@ export function Titlebar() {
         </span>
       </div>
 
-      {/* Center Draggable Spacer */}
-      <div data-tauri-drag-region className="flex-1 h-full cursor-default" />
-
       {/* Right Section: Status -> Usage -> Session -> Workbench Toggle -> Window Controls */}
-      <div className="flex items-center space-x-2 h-full text-[#8b949e] z-10">
+      <div className="flex items-center space-x-2 h-full text-[#8b949e] z-10" data-tauri-drag-region>
         {renderStatusPill(turnPhase)}
 
         {usage.contextPercent !== undefined && (
@@ -135,7 +160,10 @@ export function Titlebar() {
 
         {/* Workbench Toggle Button (before Minimize) */}
         <button
-          onClick={toggleWorkbench}
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleWorkbench();
+          }}
           className={`p-1 rounded transition ${
             workbenchOpen
               ? "bg-[#1f6feb]/20 text-[#58a6ff]"

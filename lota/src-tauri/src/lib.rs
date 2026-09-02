@@ -19,6 +19,11 @@ async fn send_rpc_command(request: RpcRequest, _app_handle: tauri::AppHandle) ->
 }
 
 #[tauri::command]
+fn start_drag_window(window: tauri::Window) {
+    let _ = window.start_dragging();
+}
+
+#[tauri::command]
 fn minimize_window(window: tauri::Window) {
     let _ = window.minimize();
 }
@@ -44,6 +49,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             send_rpc_command,
+            start_drag_window,
             minimize_window,
             toggle_maximize_window,
             close_window
