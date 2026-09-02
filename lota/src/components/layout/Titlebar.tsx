@@ -1,6 +1,7 @@
 import { useSessionStore, TurnPhase } from "../../store/sessionStore";
 import { useUiStore } from "../../store/uiStore";
 import { useWorkspaceStore } from "../../store/workspaceStore";
+import { invoke } from "@tauri-apps/api/core";
 import {
   PanelLeft,
   PanelRight,
@@ -21,25 +22,16 @@ export function Titlebar() {
   const { toggleSidebar, toggleWorkbench, workbenchOpen, sidebarOpen } = useUiStore();
   const { workspacePath, gitBranch } = useWorkspaceStore();
 
-  const handleMinimize = async () => {
-    try {
-      const { getCurrentWindow } = await import("@tauri-apps/api/window");
-      await getCurrentWindow().minimize();
-    } catch {}
+  const handleMinimize = () => {
+    invoke("minimize_window").catch(() => {});
   };
 
-  const handleMaximize = async () => {
-    try {
-      const { getCurrentWindow } = await import("@tauri-apps/api/window");
-      await getCurrentWindow().toggleMaximize();
-    } catch {}
+  const handleMaximize = () => {
+    invoke("toggle_maximize_window").catch(() => {});
   };
 
-  const handleClose = async () => {
-    try {
-      const { getCurrentWindow } = await import("@tauri-apps/api/window");
-      await getCurrentWindow().close();
-    } catch {}
+  const handleClose = () => {
+    invoke("close_window").catch(() => {});
   };
 
   const renderStatusPill = (phase: TurnPhase) => {
@@ -85,12 +77,9 @@ export function Titlebar() {
   };
 
   return (
-    <header
-      data-tauri-drag-region
-      className="flex items-center justify-between pl-3 pr-0 py-0 border-b border-[#30363d] bg-[#161b22] select-none text-xs h-9"
-    >
+    <header className="flex items-center justify-between pl-3 pr-0 border-b border-[#30363d] bg-[#161b22] select-none text-xs h-9">
       {/* Left Section: Logo & Name -> Sidebar Toggle -> Workspace Pill -> Model */}
-      <div className="flex items-center space-x-2.5 h-full">
+      <div className="flex items-center space-x-2.5 h-full z-10">
         {/* Logo & Company Name */}
         <div className="flex items-center space-x-2">
           <div className="flex items-center justify-center w-5 h-5 rounded bg-blue-600/20 text-blue-400 font-bold text-xs">
@@ -124,8 +113,11 @@ export function Titlebar() {
         </span>
       </div>
 
+      {/* Center Draggable Spacer */}
+      <div data-tauri-drag-region className="flex-1 h-full cursor-default" />
+
       {/* Right Section: Status -> Usage -> Session -> Workbench Toggle -> Window Controls */}
-      <div className="flex items-center space-x-2 h-full text-[#8b949e]">
+      <div className="flex items-center space-x-2 h-full text-[#8b949e] z-10">
         {renderStatusPill(turnPhase)}
 
         {usage.contextPercent !== undefined && (
@@ -154,7 +146,7 @@ export function Titlebar() {
           <PanelRight className="w-3.5 h-3.5" />
         </button>
 
-        {/* Integrated Window Controls (Frameless) */}
+        {/* Native Window Controls */}
         <div className="flex items-center h-full ml-1">
           <button
             onClick={handleMinimize}
