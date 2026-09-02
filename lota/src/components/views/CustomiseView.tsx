@@ -4,7 +4,7 @@ import { RulesCustomiseTab } from "../customise/RulesCustomiseTab";
 import { SkillsCustomiseTab } from "../customise/SkillsCustomiseTab";
 import { McpsCustomiseTab } from "../customise/McpsCustomiseTab";
 import { PluginsCustomiseTab } from "../customise/PluginsCustomiseTab";
-import { Coins, Shield, Sparkles, PlugZap, ToyBrick } from "lucide-react";
+import { Coins, Shield, Zap, PlugZap, ToyBrick } from "lucide-react";
 
 export function CustomiseView() {
   const { activeCustomiseTab, setActiveCustomiseTab } = useUiStore();
@@ -17,7 +17,7 @@ export function CustomiseView() {
   }[] = [
     { id: "tokens", label: "Token Usage", icon: Coins, badge: "Startup" },
     { id: "rules", label: "Rules", icon: Shield },
-    { id: "skills", label: "Skills", icon: Sparkles },
+    { id: "skills", label: "Skills", icon: Zap },
     { id: "mcps", label: "MCPs", icon: PlugZap },
     { id: "plugins", label: "Plugins", icon: ToyBrick },
   ];

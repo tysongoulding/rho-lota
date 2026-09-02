@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sparkles, Search, Folder, Terminal } from "lucide-react";
+import { Zap, Search, Folder, Terminal } from "lucide-react";
 
 export function SkillsCustomiseTab() {
   const [search, setSearch] = useState("");
@@ -83,7 +83,7 @@ export function SkillsCustomiseTab() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
           <h2 className="text-sm font-semibold text-white mb-1 flex items-center space-x-2">
-            <Sparkles className="w-4 h-4 text-pink-400" />
+            <Zap className="w-4 h-4 text-pink-400" />
             <span>Installed Skills & Trigger Contracts</span>
           </h2>
           <p className="text-[#8b949e]">
@@ -115,7 +115,7 @@ export function SkillsCustomiseTab() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2 truncate">
                   <div className="p-1 rounded bg-pink-500/10 text-pink-400 border border-pink-500/20">
-                    <Sparkles className="w-3.5 h-3.5" />
+                    <Zap className="w-3.5 h-3.5" />
                   </div>
                   <span className="font-mono text-xs font-semibold text-white truncate">{skill.name}</span>
                 </div>

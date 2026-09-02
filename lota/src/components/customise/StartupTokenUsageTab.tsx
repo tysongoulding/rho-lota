@@ -1,4 +1,4 @@
-import { Coins, PlugZap, ToyBrick, Shield, Sparkles, Cpu, Check, Info } from "lucide-react";
+import { Coins, PlugZap, ToyBrick, Shield, Zap, Cpu, Check, Info } from "lucide-react";
 
 export function StartupTokenUsageTab() {
   const startupItems = [
@@ -24,7 +24,7 @@ export function StartupTokenUsageTab() {
     },
     {
       category: "Skills Index & Triggers",
-      icon: Sparkles,
+      icon: Zap,
       color: "text-pink-400",
       tokens: 820,
       description: "Discovered workspace skills, trigger keywords, and execution contracts.",
