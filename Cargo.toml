@@ -4,6 +4,7 @@ members = [
     ".",
     "crates/rho-harness-core",
     "crates/rho-engine",
+    "lota/src-tauri",
 ]
 
 [workspace.package]
