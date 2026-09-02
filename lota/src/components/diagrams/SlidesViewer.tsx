@@ -1,12 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { MarkviewRenderer } from "../markdown/MarkviewRenderer";
 import {
   ChevronLeft,
   ChevronRight,
   Maximize2,
+  Minimize2,
   Presentation,
   Play,
   RotateCcw,
+  Clock,
 } from "lucide-react";
 
 interface SlidesViewerProps {
@@ -24,6 +26,9 @@ export function SlidesViewer({ content, title = "Presentation Deck" }: SlidesVie
   const slides = rawSlides.length > 0 ? rawSlides : [content];
   const [currentSlide, setCurrentSlide] = useState<number>(0);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
+  const [showControls, setShowControls] = useState<boolean>(true);
+  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const totalSlides = slides.length;
 
@@ -35,7 +40,22 @@ export function SlidesViewer({ content, title = "Presentation Deck" }: SlidesVie
     setCurrentSlide((prev) => Math.max(0, prev - 1));
   };
 
-  // Keyboard navigation
+  // Timer when in presentation mode
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (isFullscreen) {
+      interval = setInterval(() => {
+        setElapsedSeconds((s) => s + 1);
+      }, 1000);
+    } else {
+      setElapsedSeconds(0);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isFullscreen]);
+
+  // Keyboard navigation & Esc handling
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") {
@@ -50,19 +70,154 @@ export function SlidesViewer({ content, title = "Presentation Deck" }: SlidesVie
       } else if (e.key === "End") {
         e.preventDefault();
         setCurrentSlide(totalSlides - 1);
+      } else if (e.key === "f" || e.key === "F5") {
+        if (!e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          setIsFullscreen((prev) => !prev);
+        }
+      } else if (e.key === "Escape" && isFullscreen) {
+        e.preventDefault();
+        setIsFullscreen(false);
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [totalSlides]);
+  }, [totalSlides, isFullscreen]);
+
+  // Mouse move in fullscreen to auto-reveal controls
+  const handleMouseMove = () => {
+    if (!isFullscreen) return;
+    setShowControls(true);
+    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    controlsTimeoutRef.current = setTimeout(() => {
+      setShowControls(false);
+    }, 3000);
+  };
+
+  const formatTime = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  };
 
   const activeContent = slides[currentSlide] || "";
 
+  // If in Presentation Mode (100% screen overlay)
+  if (isFullscreen) {
+    return (
+      <div
+        onMouseMove={handleMouseMove}
+        className="fixed inset-0 z-[100] bg-[#0a0d12] text-[#c9d1d9] flex flex-col justify-between p-8 sm:p-14 select-none overflow-hidden animate-in fade-in duration-200"
+      >
+        {/* Top Presenter Bar (Auto-hides) */}
+        <div
+          className={`flex items-center justify-between transition-opacity duration-300 ${
+            showControls ? "opacity-100" : "opacity-0 pointer-events-none"
+          }`}
+        >
+          <div className="flex items-center space-x-3">
+            <Presentation className="w-5 h-5 text-pink-400" />
+            <span className="text-sm font-semibold text-white font-mono">{title}</span>
+            <span className="text-xs text-pink-300 bg-pink-500/10 px-2.5 py-0.5 rounded-full border border-pink-500/30 font-mono">
+              Slide {currentSlide + 1} of {totalSlides}
+            </span>
+          </div>
+
+          <div className="flex items-center space-x-3">
+            {/* Timer */}
+            <div className="flex items-center space-x-1.5 px-3 py-1 bg-[#161b22] border border-[#30363d] rounded-lg font-mono text-xs text-[#8b949e]">
+              <Clock className="w-3.5 h-3.5 text-blue-400" />
+              <span>{formatTime(elapsedSeconds)}</span>
+            </div>
+
+            {/* Exit Fullscreen Button */}
+            <button
+              onClick={() => setIsFullscreen(false)}
+              className="px-3 py-1 bg-[#21262d] hover:bg-red-950/50 hover:text-red-300 text-white rounded-lg border border-[#30363d] text-xs font-semibold flex items-center space-x-1.5 transition"
+              title="Exit Fullscreen (Esc)"
+            >
+              <Minimize2 className="w-3.5 h-3.5" />
+              <span>Exit (Esc)</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Presentation Slide Canvas (Hero Center) */}
+        <div className="flex-1 flex items-center justify-center max-w-6xl w-full mx-auto my-4 overflow-y-auto">
+          <div className="w-full bg-[#161b22] border border-[#30363d] rounded-3xl p-10 md:p-16 shadow-2xl space-y-6 animate-in zoom-in-95 duration-150">
+            <MarkviewRenderer content={activeContent} showLineNumbers={false} />
+          </div>
+        </div>
+
+        {/* Floating Bottom Navigation Bar (Auto-hides) */}
+        <div
+          className={`flex items-center justify-between max-w-4xl w-full mx-auto transition-opacity duration-300 ${
+            showControls ? "opacity-100" : "opacity-0 pointer-events-none"
+          }`}
+        >
+          {/* Previous / Next buttons */}
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={prevSlide}
+              disabled={currentSlide === 0}
+              className={`p-2 rounded-xl border transition ${
+                currentSlide === 0
+                  ? "bg-[#161b22] border-[#30363d] text-[#8b949e] opacity-40 cursor-not-allowed"
+                  : "bg-[#21262d] border-[#30363d] text-white hover:bg-[#30363d]"
+              }`}
+              title="Previous Slide (←)"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+
+            <button
+              onClick={nextSlide}
+              disabled={currentSlide === totalSlides - 1}
+              className={`px-4 py-2 rounded-xl font-semibold text-xs border transition flex items-center space-x-2 ${
+                currentSlide === totalSlides - 1
+                  ? "bg-[#161b22] border-[#30363d] text-[#8b949e] opacity-40 cursor-not-allowed"
+                  : "bg-[#1f6feb] border-blue-500 text-white hover:bg-blue-600 shadow-lg"
+              }`}
+              title="Next Slide (→)"
+            >
+              <span>Next Slide</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Slide Indicator Dots */}
+          <div className="flex items-center space-x-1.5">
+            {slides.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setCurrentSlide(idx)}
+                className={`h-2.5 rounded-full transition-all ${
+                  currentSlide === idx ? "w-8 bg-pink-500" : "w-2.5 bg-[#30363d] hover:bg-[#8b949e]"
+                }`}
+                title={`Go to slide ${idx + 1}`}
+              />
+            ))}
+          </div>
+
+          {/* Restart */}
+          <button
+            onClick={() => setCurrentSlide(0)}
+            className="p-2 rounded-xl bg-[#161b22] hover:bg-[#21262d] text-[#8b949e] hover:text-white border border-[#30363d] transition"
+            title="Restart Presentation"
+          >
+            <RotateCcw className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Normal Embedded View in Studio
   return (
     <div className="flex flex-col h-full w-full bg-[#0d1117] rounded-xl border border-[#30363d] overflow-hidden select-none">
       {/* Slide Deck Top Control Bar */}
-      <div className="flex items-center justify-between px-5 py-2.5 bg-[#161b22] border-b border-[#30363d] text-xs">
+      <div className="flex items-center justify-between px-5 py-2.5 bg-[#161b22] border-b border-[#30363d] text-xs flex-shrink-0">
         <div className="flex items-center space-x-2">
           <Presentation className="w-4 h-4 text-pink-400" />
           <span className="font-semibold text-white font-mono text-[11px] truncate max-w-xs">{title}</span>
@@ -110,13 +265,14 @@ export function SlidesViewer({ content, title = "Presentation Deck" }: SlidesVie
             <RotateCcw className="w-3.5 h-3.5" />
           </button>
 
-          {/* Fullscreen Mode */}
+          {/* Fullscreen Presentation Mode Button */}
           <button
-            onClick={() => setIsFullscreen(!isFullscreen)}
-            className="p-1.5 rounded-lg bg-[#0d1117] hover:bg-[#21262d] text-[#8b949e] hover:text-white border border-[#30363d] transition"
-            title="Toggle Fullscreen"
+            onClick={() => setIsFullscreen(true)}
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-pink-600 hover:bg-pink-500 text-white font-semibold text-xs shadow transition ml-1"
+            title="Start Fullscreen Presentation Mode (F5)"
           >
             <Maximize2 className="w-3.5 h-3.5" />
+            <span>Present</span>
           </button>
         </div>
       </div>
