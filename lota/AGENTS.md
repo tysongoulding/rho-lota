@@ -4,6 +4,16 @@
 
 ---
 
+## 0. Scope & Boundary Rules (MANDATORY)
+
+- **NEVER touch or modify any files outside the `lota/` directory.**
+- **Backend Change Isolation**: If a frontend feature or bugfix requires new Rust engine capabilities, modified RPC protocol endpoints, CLI changes, or crates adjustments (`crates/rho-engine`, `crates/rho-harness-core`, root `src/`):
+  1. **DO NOT** edit core backend files directly.
+  2. Document the exact requirement, proposed Rust struct/RPC command, and rationale in [`lota/backend-requests.md`](./backend-requests.md).
+  3. Mock or stub the missing capability on the frontend (e.g., in `src/lib/rpc.ts`) until the backend change is implemented and reviewed.
+
+---
+
 ## 1. Architecture & Data Flow
 
 `lota` is an **event-driven, streaming workspace application**. It does **not** follow traditional REST/CRUD request-response patterns.
