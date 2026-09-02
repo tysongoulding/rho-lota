@@ -15,6 +15,7 @@ export type WorkbenchTab = "diff" | "thinking" | "file" | "json";
 interface UiState {
   sidebarOpen: boolean;
   workbenchOpen: boolean;
+  commandPaletteOpen: boolean;
   activeView: ActiveView;
   activeWorkbenchTab: WorkbenchTab;
   selectedSessionId: string | null;
@@ -23,6 +24,8 @@ interface UiState {
   setSidebarOpen: (open: boolean) => void;
   toggleWorkbench: () => void;
   setWorkbenchOpen: (open: boolean) => void;
+  toggleCommandPalette: () => void;
+  setCommandPaletteOpen: (open: boolean) => void;
   setActiveView: (view: ActiveView) => void;
   setActiveWorkbenchTab: (tab: WorkbenchTab) => void;
   setSelectedSessionId: (id: string | null) => void;
@@ -31,6 +34,7 @@ interface UiState {
 export const useUiStore = create<UiState>((set) => ({
   sidebarOpen: true,
   workbenchOpen: false,
+  commandPaletteOpen: false,
   activeView: "chat",
   activeWorkbenchTab: "diff",
   selectedSessionId: null,
@@ -39,6 +43,8 @@ export const useUiStore = create<UiState>((set) => ({
   setSidebarOpen: (open: boolean) => set({ sidebarOpen: open }),
   toggleWorkbench: () => set((s) => ({ workbenchOpen: !s.workbenchOpen })),
   setWorkbenchOpen: (open: boolean) => set({ workbenchOpen: open }),
+  toggleCommandPalette: () => set((s) => ({ commandPaletteOpen: !s.commandPaletteOpen })),
+  setCommandPaletteOpen: (open: boolean) => set({ commandPaletteOpen: open }),
   setActiveView: (view: ActiveView) => set({ activeView: view }),
   setActiveWorkbenchTab: (tab: WorkbenchTab) => set({ activeWorkbenchTab: tab }),
   setSelectedSessionId: (id: string | null) => set({ selectedSessionId: id }),
