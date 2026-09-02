@@ -1,0 +1,122 @@
+import { useUiStore, WorkbenchTab } from "../../store/uiStore";
+import { useSessionStore } from "../../store/sessionStore";
+import { DiffViewer } from "../chat/DiffViewer";
+import { CodeBlock } from "../chat/CodeBlock";
+import {
+  Columns,
+  Brain,
+  FileCode,
+  Code2,
+  X,
+} from "lucide-react";
+
+export function StreamingWorkbench() {
+  const { workbenchOpen, activeWorkbenchTab, setActiveWorkbenchTab, setWorkbenchOpen } = useUiStore();
+  const { messages } = useSessionStore();
+
+  if (!workbenchOpen) return null;
+
+  // Find latest edit tool call
+  const latestEditMsg = [...messages].reverse().find(
+    (m) => m.role === "tool" && m.toolCall?.tool === "edit"
+  );
+  const editArgs = latestEditMsg?.toolCall?.arguments;
+
+  // Find latest thinking reasoning
+  const latestThinking = [...messages].reverse().find((m) => m.reasoning)?.reasoning;
+
+  const tabs: { id: WorkbenchTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+    { id: "diff", label: "Active Diff", icon: FileCode },
+    { id: "thinking", label: "Thinking Stream", icon: Brain },
+    { id: "json", label: "Raw JSON", icon: Code2 },
+  ];
+
+  return (
+    <aside className="w-96 md:w-[480px] border-l border-[#30363d] bg-[#0d1117] flex flex-col h-full text-xs select-none">
+      {/* Workbench Header */}
+      <div className="flex items-center justify-between px-3 py-2 border-b border-[#30363d] bg-[#161b22]">
+        <div className="flex items-center space-x-1.5">
+          <Columns className="w-4 h-4 text-[#58a6ff]" />
+          <span className="font-semibold text-white">Workbench</span>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <div className="flex bg-[#0d1117] p-0.5 rounded border border-[#30363d]">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeWorkbenchTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveWorkbenchTab(tab.id)}
+                  className={`flex items-center space-x-1 px-2 py-1 rounded text-[11px] transition ${
+                    isActive ? "bg-[#21262d] text-white font-medium" : "text-[#8b949e] hover:text-white"
+                  }`}
+                >
+                  <Icon className="w-3 h-3" />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            onClick={() => setWorkbenchOpen(false)}
+            className="p-1 rounded text-[#8b949e] hover:text-white hover:bg-[#21262d] transition"
+            title="Close Workbench"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Workbench Content Body */}
+      <div className="flex-1 overflow-y-auto p-3">
+        {activeWorkbenchTab === "diff" && (
+          <div>
+            {editArgs &&
+            typeof editArgs.target_content === "string" &&
+            typeof editArgs.replacement_content === "string" ? (
+              <DiffViewer
+                filePath={typeof editArgs.file_path === "string" ? editArgs.file_path : undefined}
+                targetContent={editArgs.target_content}
+                replacementContent={editArgs.replacement_content}
+                startLine={typeof editArgs.start_line === "number" ? editArgs.start_line : 1}
+              />
+            ) : (
+              <div className="text-center py-16 text-[#8b949e]">
+                <FileCode className="w-8 h-8 mx-auto mb-2 text-[#30363d]" />
+                <p>No active file diff in the current turn.</p>
+                <p className="text-[10px] text-[#484f58] mt-1">Execute an edit or write tool to inspect diffs here.</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeWorkbenchTab === "thinking" && (
+          <div>
+            {latestThinking ? (
+              <div className="p-3 bg-[#161b22] border border-[#30363d] rounded-xl whitespace-pre-wrap font-mono text-[11px] text-[#c9d1d9] leading-relaxed">
+                {latestThinking}
+              </div>
+            ) : (
+              <div className="text-center py-16 text-[#8b949e]">
+                <Brain className="w-8 h-8 mx-auto mb-2 text-[#30363d]" />
+                <p>No reasoning stream recorded yet.</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeWorkbenchTab === "json" && (
+          <div>
+            <CodeBlock
+              language="json"
+              code={JSON.stringify(messages[messages.length - 1] || {}, null, 2)}
+            />
+          </div>
+        )}
+      </div>
+    </aside>
+  );
+}

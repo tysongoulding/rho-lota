@@ -6,10 +6,11 @@ import { useRhoEngine } from "./hooks/useRhoEngine";
 import { useTurnQueue } from "./hooks/useTurnQueue";
 import { Titlebar } from "./components/layout/Titlebar";
 import { Sidebar } from "./components/layout/Sidebar";
-import { MessageFeed } from "./components/chat/MessageFeed";
+import { VirtualizedMessageFeed } from "./components/chat/VirtualizedMessageFeed";
 import { ApprovalModal } from "./components/chat/ApprovalModal";
 import { QueueBadge } from "./components/editor/QueueBadge";
 import { PromptInput } from "./components/editor/PromptInput";
+import { StreamingWorkbench } from "./components/workbench/StreamingWorkbench";
 import { AgentInspector } from "./components/agent/AgentInspector";
 import { ToolboxManager } from "./components/agent/ToolboxManager";
 import { ModelProviderPicker } from "./components/agent/ModelProviderPicker";
@@ -60,7 +61,7 @@ export default function App() {
         <main className="flex-1 flex flex-col bg-[#0d1117] min-w-0">
           {activeView === "chat" && (
             <>
-              <MessageFeed messages={messages} />
+              <VirtualizedMessageFeed messages={messages} />
               <ApprovalModal />
               <QueueBadge />
               <PromptInput />
@@ -73,6 +74,8 @@ export default function App() {
           {activeView === "settings" && <ModelProviderPicker />}
           {activeView === "appearance" && <AppearanceSettings />}
         </main>
+
+        {activeView === "chat" && <StreamingWorkbench />}
       </div>
     </div>
   );

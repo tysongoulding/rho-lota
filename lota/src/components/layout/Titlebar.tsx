@@ -1,10 +1,10 @@
 import { useSessionStore } from "../../store/sessionStore";
 import { useUiStore } from "../../store/uiStore";
-import { PanelLeft, Cpu, Activity } from "lucide-react";
+import { PanelLeft, PanelRight, Cpu, Activity } from "lucide-react";
 
 export function Titlebar() {
   const { sessionInfo, usage, isRunning } = useSessionStore();
-  const { toggleSidebar } = useUiStore();
+  const { toggleSidebar, toggleWorkbench, workbenchOpen } = useUiStore();
 
   return (
     <header
@@ -52,6 +52,18 @@ export function Titlebar() {
             {sessionInfo.id.slice(0, 8)}
           </span>
         )}
+
+        <button
+          onClick={toggleWorkbench}
+          className={`p-1 rounded transition ${
+            workbenchOpen
+              ? "bg-[#1f6feb]/20 text-[#58a6ff]"
+              : "hover:bg-[#21262d] text-[#8b949e] hover:text-white"
+          }`}
+          title="Toggle Streaming Workbench"
+        >
+          <PanelRight className="w-4 h-4" />
+        </button>
       </div>
     </header>
   );
