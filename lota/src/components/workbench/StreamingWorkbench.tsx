@@ -1,5 +1,6 @@
 import { useUiStore, WorkbenchTab } from "../../store/uiStore";
 import { useSessionStore } from "../../store/sessionStore";
+import { useWorkspaceStore } from "../../store/workspaceStore";
 import { DiffViewer } from "../chat/DiffViewer";
 import { CodeBlock } from "../chat/CodeBlock";
 import {
@@ -7,12 +8,14 @@ import {
   Brain,
   FileCode,
   Code2,
+  FileText,
   X,
 } from "lucide-react";
 
 export function StreamingWorkbench() {
   const { workbenchOpen, activeWorkbenchTab, setActiveWorkbenchTab, setWorkbenchOpen } = useUiStore();
   const { messages } = useSessionStore();
+  const { selectedFile } = useWorkspaceStore();
 
   if (!workbenchOpen) return null;
 
@@ -27,6 +30,7 @@ export function StreamingWorkbench() {
 
   const tabs: { id: WorkbenchTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: "diff", label: "Active Diff", icon: FileCode },
+    { id: "file", label: "File Preview", icon: FileText },
     { id: "thinking", label: "Thinking Stream", icon: Brain },
     { id: "json", label: "Raw JSON", icon: Code2 },
   ];
@@ -88,6 +92,28 @@ export function StreamingWorkbench() {
                 <FileCode className="w-8 h-8 mx-auto mb-2 text-[#30363d]" />
                 <p>No active file diff in the current turn.</p>
                 <p className="text-[10px] text-[#484f58] mt-1">Execute an edit or write tool to inspect diffs here.</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeWorkbenchTab === "file" && (
+          <div>
+            {selectedFile ? (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-mono text-white text-xs font-semibold">{selectedFile.path}</span>
+                </div>
+                <CodeBlock
+                  language={selectedFile.path.split(".").pop() || "text"}
+                  code={selectedFile.content || `// ${selectedFile.path}\n// Ready for agent edit.`}
+                />
+              </div>
+            ) : (
+              <div className="text-center py-16 text-[#8b949e]">
+                <FileText className="w-8 h-8 mx-auto mb-2 text-[#30363d]" />
+                <p>No file selected for preview.</p>
+                <p className="text-[10px] text-[#484f58] mt-1">Select a file in Workspace Explorer to view its code.</p>
               </div>
             )}
           </div>

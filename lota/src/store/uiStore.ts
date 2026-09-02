@@ -1,7 +1,16 @@
 import { create } from "zustand";
 
-export type ActiveView = "chat" | "agents" | "tools" | "sessions" | "plans" | "settings" | "appearance";
-export type WorkbenchTab = "diff" | "thinking" | "json";
+export type ActiveView =
+  | "chat"
+  | "files"
+  | "agents"
+  | "tools"
+  | "plans"
+  | "sessions"
+  | "settings"
+  | "appearance";
+
+export type WorkbenchTab = "diff" | "thinking" | "file" | "json";
 
 interface UiState {
   sidebarOpen: boolean;

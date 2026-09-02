@@ -3,6 +3,7 @@ import { useSessionStore } from "../../store/sessionStore";
 import {
   MessageSquarePlus,
   MessageSquare,
+  FolderTree,
   Bot,
   Wrench,
   GitBranch,
@@ -19,6 +20,7 @@ export function Sidebar() {
 
   const navItems = [
     { id: "chat" as const, label: "Chat & Feed", icon: MessageSquare },
+    { id: "files" as const, label: "Files & Explorer", icon: FolderTree },
     { id: "agents" as const, label: "Agent Personas", icon: Bot },
     { id: "tools" as const, label: "Dynamic Tools", icon: Wrench },
     { id: "plans" as const, label: "Plan Tracker", icon: ListTodo },

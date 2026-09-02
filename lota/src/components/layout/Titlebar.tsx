@@ -1,5 +1,6 @@
 import { useSessionStore, TurnPhase } from "../../store/sessionStore";
 import { useUiStore } from "../../store/uiStore";
+import { useWorkspaceStore } from "../../store/workspaceStore";
 import {
   PanelLeft,
   PanelRight,
@@ -9,11 +10,13 @@ import {
   Wrench,
   ShieldAlert,
   AlertCircle,
+  GitBranch,
 } from "lucide-react";
 
 export function Titlebar() {
   const { sessionInfo, usage, turnPhase } = useSessionStore();
   const { toggleSidebar, toggleWorkbench, workbenchOpen } = useUiStore();
+  const { workspacePath, gitBranch } = useWorkspaceStore();
 
   const renderStatusPill = (phase: TurnPhase) => {
     switch (phase) {
@@ -78,7 +81,14 @@ export function Titlebar() {
           <span className="font-semibold text-white tracking-wide">Rho Lota</span>
         </div>
 
-        <span className="text-[#8b949e] font-mono">
+        <div className="flex items-center space-x-1 text-[#8b949e] font-mono text-[11px] bg-[#0d1117] px-2 py-0.5 rounded border border-[#30363d]">
+          <span>{workspacePath}</span>
+          <span className="text-[#484f58]">/</span>
+          <GitBranch className="w-3 h-3 text-purple-400" />
+          <span className="text-purple-300">{gitBranch}</span>
+        </div>
+
+        <span className="text-[#8b949e] font-mono hidden md:inline">
           {sessionInfo.provider || "anthropic"} / {sessionInfo.model || "claude-3-7-sonnet"}
         </span>
       </div>

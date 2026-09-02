@@ -11,6 +11,7 @@ import { ApprovalModal } from "./components/chat/ApprovalModal";
 import { QueueBadge } from "./components/editor/QueueBadge";
 import { PromptInput } from "./components/editor/PromptInput";
 import { StreamingWorkbench } from "./components/workbench/StreamingWorkbench";
+import { WorkspaceExplorer } from "./components/workspace/WorkspaceExplorer";
 import { AgentInspector } from "./components/agent/AgentInspector";
 import { ToolboxManager } from "./components/agent/ToolboxManager";
 import { ModelProviderPicker } from "./components/agent/ModelProviderPicker";
@@ -67,6 +68,7 @@ export default function App() {
               <PromptInput />
             </>
           )}
+          {activeView === "files" && <WorkspaceExplorer />}
           {activeView === "agents" && <AgentInspector />}
           {activeView === "tools" && <ToolboxManager />}
           {activeView === "plans" && <StructuredPlanView />}
