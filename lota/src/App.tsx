@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useSessionStore } from "./store/sessionStore";
+import { useUiStore } from "./store/uiStore";
 import { useRhoEngine } from "./hooks/useRhoEngine";
 import { useTurnQueue } from "./hooks/useTurnQueue";
 import { Titlebar } from "./components/layout/Titlebar";
@@ -8,9 +9,15 @@ import { MessageFeed } from "./components/chat/MessageFeed";
 import { ApprovalModal } from "./components/chat/ApprovalModal";
 import { QueueBadge } from "./components/editor/QueueBadge";
 import { PromptInput } from "./components/editor/PromptInput";
+import { AgentInspector } from "./components/agent/AgentInspector";
+import { ToolboxManager } from "./components/agent/ToolboxManager";
+import { ModelProviderPicker } from "./components/agent/ModelProviderPicker";
+import { StructuredPlanView } from "./components/artifacts/StructuredPlanView";
+import { SessionGraphViewer } from "./components/dag/SessionGraphViewer";
 
 export default function App() {
   const { messages, isRunning, addUserMessage } = useSessionStore();
+  const { activeView } = useUiStore();
   const { prompt } = useRhoEngine();
   const { queue, dequeue } = useTurnQueue();
 
@@ -33,10 +40,19 @@ export default function App() {
         <Sidebar />
 
         <main className="flex-1 flex flex-col bg-[#0d1117] min-w-0">
-          <MessageFeed messages={messages} />
-          <ApprovalModal />
-          <QueueBadge />
-          <PromptInput />
+          {activeView === "chat" && (
+            <>
+              <MessageFeed messages={messages} />
+              <ApprovalModal />
+              <QueueBadge />
+              <PromptInput />
+            </>
+          )}
+          {activeView === "agents" && <AgentInspector />}
+          {activeView === "tools" && <ToolboxManager />}
+          {activeView === "plans" && <StructuredPlanView />}
+          {activeView === "sessions" && <SessionGraphViewer />}
+          {activeView === "settings" && <ModelProviderPicker />}
         </main>
       </div>
     </div>
