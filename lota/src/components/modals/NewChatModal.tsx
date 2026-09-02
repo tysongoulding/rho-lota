@@ -4,6 +4,7 @@ import { useSessionStore } from "../../store/sessionStore";
 import { useWorkspaceStore } from "../../store/workspaceStore";
 import { useAgentStore } from "../../store/agentStore";
 import { useToastStore } from "../../store/toastStore";
+import { useChatStore } from "../../store/chatStore";
 import {
   MessageSquarePlus,
   Folder,
@@ -16,6 +17,7 @@ import {
 export function NewChatModal() {
   const { newChatModalOpen, setNewChatModalOpen, setActiveView } = useUiStore();
   const { resetSession } = useSessionStore();
+  const { createChat } = useChatStore();
   const { workspacePath, setWorkspacePath, remoteUrl, setRemoteUrl } = useWorkspaceStore();
   const { personas, activePersonaId, setActivePersona } = useAgentStore();
   const { addToast } = useToastStore();
@@ -33,12 +35,16 @@ export function NewChatModal() {
     if (inputFolder.trim()) {
       setWorkspacePath(inputFolder.trim());
     }
-    if (repoMode === "url" && inputRepoUrl.trim()) {
-      setRemoteUrl(inputRepoUrl.trim());
+    const finalRepo = repoMode === "url" && inputRepoUrl.trim() ? inputRepoUrl.trim() : undefined;
+    if (finalRepo) {
+      setRemoteUrl(finalRepo);
     }
     if (selectedAgentId) {
       setActivePersona(selectedAgentId);
     }
+
+    createChat(chatName.trim(), selectedAgentId, inputFolder.trim(), finalRepo);
+
     setNewChatModalOpen(false);
     setActiveView("chat");
     addToast(`Started new conversation: ${chatName}`, "success");
