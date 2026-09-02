@@ -1,18 +1,20 @@
 import { create } from "zustand";
 import { RpcEvent } from "../lib/protocol";
 
+export interface ToolCallData {
+  tool: string;
+  arguments: Record<string, unknown>;
+  output?: string;
+  isError?: boolean;
+  durationMs?: number;
+}
+
 export interface MessageItem {
   id: string;
   role: "user" | "assistant" | "system" | "tool";
   content: string;
   reasoning?: string;
-  toolCall?: {
-    tool: string;
-    arguments: Record<string, unknown>;
-    output?: string;
-    isError?: boolean;
-    durationMs?: number;
-  };
+  toolCall?: ToolCallData;
 }
 
 export interface SessionInfo {
@@ -44,6 +46,8 @@ interface SessionState {
   // Actions
   handleEvent: (event: RpcEvent) => void;
   addUserMessage: (content: string) => void;
+  appendBufferedChunk: (chunk: string) => void;
+  appendBufferedReasoning: (chunk: string) => void;
   clearPendingApproval: () => void;
   resetSession: () => void;
 }
@@ -62,6 +66,30 @@ export const useSessionStore = create<SessionState>((set) => ({
         { id: `user-${Date.now()}`, role: "user", content },
       ],
     })),
+
+  appendBufferedChunk: (chunk: string) =>
+    set((state) => {
+      if (state.messages.length === 0) return state;
+      const messages = [...state.messages];
+      const last = { ...messages[messages.length - 1] };
+      if (last.role === "assistant") {
+        last.content += chunk;
+        messages[messages.length - 1] = last;
+      }
+      return { messages };
+    }),
+
+  appendBufferedReasoning: (chunk: string) =>
+    set((state) => {
+      if (state.messages.length === 0) return state;
+      const messages = [...state.messages];
+      const last = { ...messages[messages.length - 1] };
+      if (last.role === "assistant") {
+        last.reasoning = (last.reasoning || "") + chunk;
+        messages[messages.length - 1] = last;
+      }
+      return { messages };
+    }),
 
   clearPendingApproval: () => set({ pendingApproval: null }),
 
