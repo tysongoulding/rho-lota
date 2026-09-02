@@ -11,7 +11,6 @@ export type ActiveView =
 export type SettingsTab =
   | "general"
   | "application"
-  | "agents"
   | "tools"
   | "plans"
   | "sessions"
@@ -22,6 +21,7 @@ export type SettingsTab =
 export type CustomiseTab =
   | "tokens"
   | "rules"
+  | "personas"
   | "skills"
   | "mcps"
   | "plugins";

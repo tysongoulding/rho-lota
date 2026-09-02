@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 export function NewAgentModal() {
-  const { newAgentModalOpen, setNewAgentModalOpen, setActiveView, setActiveSettingsTab } = useUiStore();
+  const { newAgentModalOpen, setNewAgentModalOpen, setActiveView, setActiveCustomiseTab } = useUiStore();
   const { addCustomPersona, setActivePersona } = useAgentStore();
   const { addToast } = useToastStore();
 
@@ -116,8 +116,8 @@ export function NewAgentModal() {
     addCustomPersona(newPersona);
     setActivePersona(id);
     setNewAgentModalOpen(false);
-    setActiveSettingsTab("agents");
-    setActiveView("settings");
+    setActiveCustomiseTab("personas");
+    setActiveView("customise");
     addToast(`Created & activated agent: ${name}`, "success");
   };
 

@@ -35,6 +35,7 @@ export function CommandPalette() {
     setCommandPaletteOpen,
     setActiveView,
     setActiveSettingsTab,
+    setActiveCustomiseTab,
     toggleSidebar,
     toggleWorkbench,
   } = useUiStore();
@@ -66,12 +67,12 @@ export function CommandPalette() {
     {
       id: "nav-agents",
       category: "Navigation",
-      label: "Manage Agent Personas",
-      description: "Configure Rig agent prompts and personas",
+      label: "Manage Chat Personas",
+      description: "Configure Rig agent prompts and personas in Customise",
       icon: Bot,
       action: () => {
-        setActiveSettingsTab("agents");
-        setActiveView("settings");
+        setActiveCustomiseTab("personas");
+        setActiveView("customise");
       },
     },
     {
@@ -134,13 +135,13 @@ export function CommandPalette() {
     {
       id: "act-new-agent",
       category: "Actions",
-      label: "New Agent",
-      description: "Create or configure an agent persona",
+      label: "New Chat Persona",
+      description: "Create or configure a chat persona",
       icon: User,
       action: () => {
-        setActiveSettingsTab("agents");
-        setActiveView("settings");
-        addToast("Opened Agent Personas & Inspector", "info");
+        setActiveCustomiseTab("personas");
+        setActiveView("customise");
+        addToast("Opened Chat Personas & Inspector", "info");
       },
     },
     {

@@ -1,7 +1,6 @@
 import { useUiStore, SettingsTab } from "../../store/uiStore";
 import { GeneralSettings } from "./GeneralSettings";
 import { ApplicationSettings } from "./ApplicationSettings";
-import { AgentInspector } from "../agent/AgentInspector";
 import { ToolboxManager } from "../agent/ToolboxManager";
 import { StructuredPlanView } from "../artifacts/StructuredPlanView";
 import { SessionGraphViewer } from "../dag/SessionGraphViewer";
@@ -11,7 +10,6 @@ import { UsageBillingSettings } from "./UsageBillingSettings";
 import {
   SlidersHorizontal,
   Laptop,
-  Bot,
   Wrench,
   ListTodo,
   GitBranch,
@@ -26,7 +24,6 @@ export function SettingsHubView() {
   const tabs: { id: SettingsTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: "general", label: "General", icon: SlidersHorizontal },
     { id: "application", label: "Application", icon: Laptop },
-    { id: "agents", label: "Agent Personas", icon: Bot },
     { id: "tools", label: "Dynamic Tools", icon: Wrench },
     { id: "plans", label: "Plan Tracker", icon: ListTodo },
     { id: "sessions", label: "Session DAG", icon: GitBranch },
@@ -63,7 +60,6 @@ export function SettingsHubView() {
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {activeSettingsTab === "general" && <GeneralSettings />}
         {activeSettingsTab === "application" && <ApplicationSettings />}
-        {activeSettingsTab === "agents" && <AgentInspector />}
         {activeSettingsTab === "tools" && <ToolboxManager />}
         {activeSettingsTab === "plans" && <StructuredPlanView />}
         {activeSettingsTab === "sessions" && <SessionGraphViewer />}
