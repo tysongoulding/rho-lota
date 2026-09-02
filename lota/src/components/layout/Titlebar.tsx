@@ -4,6 +4,7 @@ import { useUiStore } from "../../store/uiStore";
 import { invoke } from "@tauri-apps/api/core";
 import {
   PanelLeft,
+  PanelBottom,
   PanelRight,
   Cpu,
   Activity,
@@ -18,7 +19,14 @@ import {
 
 export function Titlebar() {
   const { sessionInfo, usage, turnPhase } = useSessionStore();
-  const { toggleSidebar, toggleWorkbench, workbenchOpen, sidebarOpen } = useUiStore();
+  const {
+    toggleSidebar,
+    toggleWorkbench,
+    toggleStatusbar,
+    workbenchOpen,
+    sidebarOpen,
+    statusbarOpen,
+  } = useUiStore();
 
   const handleHeaderMouseDown = (e: React.MouseEvent) => {
     if (e.buttons === 1 && e.detail === 1) {
@@ -100,17 +108,17 @@ export function Titlebar() {
       onDoubleClick={handleHeaderDoubleClick}
       className="flex items-center justify-between pl-3 pr-0 border-b border-[#30363d] bg-[#161b22] select-none text-xs h-9 cursor-default"
     >
-      {/* Left Section: Logo & Name -> Sidebar Toggle */}
-      <div className="flex items-center space-x-2.5 h-full z-10" data-tauri-drag-region>
+      {/* Left Section: Logo & Name -> Sidebar Toggle -> Statusbar Toggle */}
+      <div className="flex items-center space-x-1.5 h-full z-10" data-tauri-drag-region>
         {/* Logo & Company Name */}
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 mr-1">
           <div className="flex items-center justify-center w-5 h-5 rounded bg-blue-600/20 text-blue-400 font-bold text-xs">
             ρ
           </div>
           <span className="font-semibold text-white tracking-wide">Rho Lota</span>
         </div>
 
-        {/* Sidebar Toggle Button (after Logo & Name) */}
+        {/* Sidebar Toggle Button */}
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -122,6 +130,20 @@ export function Titlebar() {
           title="Toggle Navigation Sidebar (Ctrl+B)"
         >
           <PanelLeft className="w-3.5 h-3.5" />
+        </button>
+
+        {/* Statusbar Toggle Button (next to Sidebar Toggle) */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleStatusbar();
+          }}
+          className={`p-1 rounded transition ${
+            statusbarOpen ? "bg-[#21262d] text-white" : "text-[#8b949e] hover:text-white hover:bg-[#21262d]"
+          }`}
+          title="Toggle Bottom Statusbar"
+        >
+          <PanelBottom className="w-3.5 h-3.5" />
         </button>
       </div>
 

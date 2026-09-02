@@ -15,6 +15,7 @@ import {
   Palette,
   RotateCcw,
   Sparkles,
+  PanelBottom,
 } from "lucide-react";
 
 interface PaletteCommand {
@@ -135,6 +136,14 @@ export function CommandPalette() {
       icon: Sparkles,
       shortcut: "Ctrl+\\",
       action: toggleWorkbench,
+    },
+    {
+      id: "act-toggle-statusbar",
+      category: "Actions",
+      label: "Toggle Statusbar",
+      description: "Show or hide the bottom workspace status bar",
+      icon: PanelBottom,
+      action: useUiStore.getState().toggleStatusbar,
     },
 
     // Personas

@@ -15,6 +15,7 @@ export type WorkbenchTab = "diff" | "thinking" | "file" | "json";
 interface UiState {
   sidebarOpen: boolean;
   workbenchOpen: boolean;
+  statusbarOpen: boolean;
   commandPaletteOpen: boolean;
   activeView: ActiveView;
   activeWorkbenchTab: WorkbenchTab;
@@ -24,6 +25,8 @@ interface UiState {
   setSidebarOpen: (open: boolean) => void;
   toggleWorkbench: () => void;
   setWorkbenchOpen: (open: boolean) => void;
+  toggleStatusbar: () => void;
+  setStatusbarOpen: (open: boolean) => void;
   toggleCommandPalette: () => void;
   setCommandPaletteOpen: (open: boolean) => void;
   setActiveView: (view: ActiveView) => void;
@@ -34,6 +37,7 @@ interface UiState {
 export const useUiStore = create<UiState>((set) => ({
   sidebarOpen: true,
   workbenchOpen: false,
+  statusbarOpen: true,
   commandPaletteOpen: false,
   activeView: "chat",
   activeWorkbenchTab: "diff",
@@ -43,6 +47,8 @@ export const useUiStore = create<UiState>((set) => ({
   setSidebarOpen: (open: boolean) => set({ sidebarOpen: open }),
   toggleWorkbench: () => set((s) => ({ workbenchOpen: !s.workbenchOpen })),
   setWorkbenchOpen: (open: boolean) => set({ workbenchOpen: open }),
+  toggleStatusbar: () => set((s) => ({ statusbarOpen: !s.statusbarOpen })),
+  setStatusbarOpen: (open: boolean) => set({ statusbarOpen: open }),
   toggleCommandPalette: () => set((s) => ({ commandPaletteOpen: !s.commandPaletteOpen })),
   setCommandPaletteOpen: (open: boolean) => set({ commandPaletteOpen: open }),
   setActiveView: (view: ActiveView) => set({ activeView: view }),

@@ -26,7 +26,7 @@ import { ToastContainer } from "./components/common/ToastContainer";
 
 export default function App() {
   const { messages, isRunning, addUserMessage } = useSessionStore();
-  const { activeView } = useUiStore();
+  const { activeView, statusbarOpen } = useUiStore();
   const { mode } = useThemeStore();
   const { prompt } = useRhoEngine();
   const { queue, dequeue } = useTurnQueue();
@@ -98,7 +98,7 @@ export default function App() {
         {activeView === "chat" && <StreamingWorkbench />}
       </div>
 
-      <Statusbar />
+      {statusbarOpen && <Statusbar />}
       <CommandPalette />
       <ToastContainer />
     </div>
