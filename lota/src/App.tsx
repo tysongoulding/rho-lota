@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useSessionStore } from "./store/sessionStore";
 import { useUiStore } from "./store/uiStore";
+import { useThemeStore, applyThemeToDocument } from "./store/themeStore";
 import { useRhoEngine } from "./hooks/useRhoEngine";
 import { useTurnQueue } from "./hooks/useTurnQueue";
 import { Titlebar } from "./components/layout/Titlebar";
@@ -14,12 +15,29 @@ import { ToolboxManager } from "./components/agent/ToolboxManager";
 import { ModelProviderPicker } from "./components/agent/ModelProviderPicker";
 import { StructuredPlanView } from "./components/artifacts/StructuredPlanView";
 import { SessionGraphViewer } from "./components/dag/SessionGraphViewer";
+import { AppearanceSettings } from "./components/settings/AppearanceSettings";
 
 export default function App() {
   const { messages, isRunning, addUserMessage } = useSessionStore();
   const { activeView } = useUiStore();
+  const { mode } = useThemeStore();
   const { prompt } = useRhoEngine();
   const { queue, dequeue } = useTurnQueue();
+
+  // Apply theme and listen for OS system theme changes
+  useEffect(() => {
+    applyThemeToDocument();
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handler = () => {
+      if (useThemeStore.getState().mode === "system") {
+        applyThemeToDocument();
+      }
+    };
+
+    mediaQuery.addEventListener("change", handler);
+    return () => mediaQuery.removeEventListener("change", handler);
+  }, [mode]);
 
   // Automatically process queued items when turn ends
   useEffect(() => {
@@ -53,6 +71,7 @@ export default function App() {
           {activeView === "plans" && <StructuredPlanView />}
           {activeView === "sessions" && <SessionGraphViewer />}
           {activeView === "settings" && <ModelProviderPicker />}
+          {activeView === "appearance" && <AppearanceSettings />}
         </main>
       </div>
     </div>

@@ -8,6 +8,7 @@ import {
   GitBranch,
   ListTodo,
   Settings,
+  Palette,
 } from "lucide-react";
 
 export function Sidebar() {
@@ -23,6 +24,7 @@ export function Sidebar() {
     { id: "plans" as const, label: "Plan Tracker", icon: ListTodo },
     { id: "sessions" as const, label: "Session DAG", icon: GitBranch },
     { id: "settings" as const, label: "Providers & Models", icon: Settings },
+    { id: "appearance" as const, label: "Theme & Colors", icon: Palette },
   ];
 
   return (

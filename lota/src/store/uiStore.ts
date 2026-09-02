@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export type ActiveView = "chat" | "agents" | "tools" | "sessions" | "plans" | "settings";
+export type ActiveView = "chat" | "agents" | "tools" | "sessions" | "plans" | "settings" | "appearance";
 
 interface UiState {
   sidebarOpen: boolean;
