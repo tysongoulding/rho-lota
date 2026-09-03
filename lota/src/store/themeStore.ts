@@ -29,10 +29,10 @@ export const THEME_PRESETS: PresetTheme[] = [
       accent: "#007acc",
     },
     light: {
-      background: "#F9F9F9",
-      foreground: "#101010",
+      background: "#f9fafb",
+      foreground: "#111827",
       card: "#ffffff",
-      border: "#e5e5e5",
+      border: "#e5e7eb",
       accent: "#007acc",
     },
   },
@@ -119,6 +119,7 @@ interface ThemeState {
   setPreset: (presetId: string) => void;
   setColor: (target: "dark" | "light", key: keyof ThemeColors, value: string) => void;
   resetPreset: (presetId: string) => void;
+  initTheme: (data: Partial<{ mode: ThemeMode; preset: string; darkColors: ThemeColors; lightColors: ThemeColors }>) => void;
 }
 
 const STORAGE_KEY = "rho-lota-theme";
@@ -186,6 +187,16 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
       persist(get());
       applyThemeToDocument();
     }
+  },
+
+  initTheme: (data) => {
+    set((state) => ({
+      mode: data.mode ?? state.mode,
+      preset: data.preset ?? state.preset,
+      darkColors: data.darkColors ? { ...state.darkColors, ...data.darkColors } : state.darkColors,
+      lightColors: data.lightColors ? { ...state.lightColors, ...data.lightColors } : state.lightColors,
+    }));
+    applyThemeToDocument();
   },
 }));
 

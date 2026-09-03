@@ -37,19 +37,13 @@ export async function loadSettingsFromDisk(): Promise<LotaPersistentSettings | n
       if (settings && typeof settings === "object" && Object.keys(settings).length > 0) {
         // Apply theme settings
         if (settings.theme) {
-          const { setMode, setPreset, setColor } = useThemeStore.getState();
-          if (settings.theme.mode) setMode(settings.theme.mode);
-          if (settings.theme.preset) setPreset(settings.theme.preset);
-          if (settings.theme.darkColors) {
-            Object.entries(settings.theme.darkColors).forEach(([k, v]) => {
-              setColor("dark", k as keyof ThemeColors, v);
-            });
-          }
-          if (settings.theme.lightColors) {
-            Object.entries(settings.theme.lightColors).forEach(([k, v]) => {
-              setColor("light", k as keyof ThemeColors, v);
-            });
-          }
+          const { initTheme } = useThemeStore.getState();
+          initTheme({
+            mode: settings.theme.mode,
+            preset: settings.theme.preset,
+            darkColors: settings.theme.darkColors,
+            lightColors: settings.theme.lightColors,
+          });
         }
 
         // Apply provider settings

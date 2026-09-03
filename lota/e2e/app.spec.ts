@@ -53,7 +53,7 @@ test.describe("Rho Lota Desktop Application E2E Suite", () => {
     await expect(page.getByText("Continuous Cargo Linter & Red-Green Verification")).toBeVisible();
   });
 
-  test("5. Navigation: Settings Hub & Theme Customization", async ({ page }) => {
+  test("5. Navigation: Settings Hub & Theme Customization (Light/Dark/System)", async ({ page }) => {
     // Click Settings
     await page.locator("aside").getByRole("button", { name: "Settings" }).click();
 
@@ -63,11 +63,21 @@ test.describe("Rho Lota Desktop Application E2E Suite", () => {
 
     // Switch to Theme & Colors
     await page.getByRole("button", { name: "Theme & Colors" }).click();
-    await expect(page.getByText("Dracula")).toBeVisible();
-    await expect(page.getByText("Nord")).toBeVisible();
-    await expect(page.getByText("Cyberpunk")).toBeVisible();
+    await expect(page.getByText("Theme Mode", { exact: true })).toBeVisible();
 
-    // Click Dracula theme button
+    // Test Light Mode click & verify html class
+    await page.getByRole("button", { name: "Light", exact: true }).click();
+    await expect(page.locator("html")).toHaveClass(/light/);
+
+    // Test Dark Mode click & verify html class
+    await page.getByRole("button", { name: "Dark", exact: true }).click();
+    await expect(page.locator("html")).toHaveClass(/dark/);
+
+    // Test System Mode click
+    await page.getByRole("button", { name: "System", exact: true }).click();
+
+    // Test Dracula preset
+    await expect(page.getByText("Dracula")).toBeVisible();
     await page.getByText("Dracula").click();
   });
 

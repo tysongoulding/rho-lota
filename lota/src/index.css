@@ -34,6 +34,62 @@ body,
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
+/* Light Theme Overrides for Components & Surfaces */
+html.light {
+  color-scheme: light;
+}
+
+html.light aside,
+html.light header,
+html.light footer,
+html.light .bg-\[\#0d1117\],
+html.light .bg-\[\#101010\] {
+  background-color: var(--bg-main) !important;
+  color: var(--text-main) !important;
+}
+
+html.light .bg-\[\#161b22\],
+html.light .bg-\[\#181818\] {
+  background-color: var(--bg-card) !important;
+  color: var(--text-main) !important;
+}
+
+html.light .bg-\[\#21262d\],
+html.light .bg-\[\#282828\] {
+  background-color: #f3f4f6 !important;
+}
+
+html.light .border-\[\#30363d\],
+html.light .border-\[\#282828\] {
+  border-color: var(--border-main) !important;
+}
+
+html.light .text-\[\#c9d1d9\],
+html.light .text-\[\#cccccc\] {
+  color: var(--text-main) !important;
+}
+
+html.light .text-\[\#8b949e\] {
+  color: #4b5563 !important;
+}
+
+html.light .text-white {
+  color: #111827 !important;
+}
+
+html.light input,
+html.light textarea,
+html.light select {
+  background-color: var(--bg-card) !important;
+  color: var(--text-main) !important;
+  border-color: var(--border-main) !important;
+}
+
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #9ca3af !important;
+}
+
 /* Vertical scrollbar styling */
 ::-webkit-scrollbar {
   width: 6px;
