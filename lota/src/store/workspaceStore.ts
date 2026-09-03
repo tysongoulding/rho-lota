@@ -10,6 +10,24 @@ export interface FileNode {
 
 export type GitProvider = "github" | "gitlab" | "bitbucket" | "git";
 
+export interface WorkspaceEntryPayload {
+  name: string;
+  path: string;
+  is_dir: boolean;
+  size?: number;
+  children?: WorkspaceEntryPayload[];
+}
+
+function mapPayloadToNode(entry: WorkspaceEntryPayload): FileNode {
+  return {
+    name: entry.name,
+    path: entry.path,
+    isDir: entry.is_dir,
+    size: entry.size,
+    children: entry.children ? entry.children.map(mapPayloadToNode) : undefined,
+  };
+}
+
 interface WorkspaceState {
   workspacePath: string;
   repoName: string;
@@ -21,6 +39,7 @@ interface WorkspaceState {
   selectedFile: { path: string; content?: string } | null;
   attachedFiles: string[];
   maxContextTokens: number;
+  isLoadingFiles: boolean;
 
   setWorkspacePath: (path: string) => void;
   setRepoName: (repo: string) => void;
@@ -33,6 +52,8 @@ interface WorkspaceState {
   attachFile: (path: string) => void;
   removeAttachedFile: (path: string) => void;
   clearAttachedFiles: () => void;
+  fetchWorkspaceFiles: (path?: string) => Promise<void>;
+  loadFileContent: (filePath: string) => Promise<string>;
 }
 
 const DEFAULT_MOCK_FILES: FileNode[] = [
@@ -98,21 +119,20 @@ const DEFAULT_MOCK_FILES: FileNode[] = [
       { path: "lota/README.md", name: "README.md", isDir: false, size: 3200 },
     ],
   },
-  { path: "Cargo.toml", name: "Cargo.toml", isDir: false, size: 1450 },
-  { path: "README.md", name: "README.md", isDir: false, size: 4500 },
 ];
 
-export const useWorkspaceStore = create<WorkspaceState>((set) => ({
+export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   workspacePath: "c:\\Users\\tyson\\.repo\\personal\\rho",
-  repoName: "rho-lota",
-  gitBranch: "feature/07-ui_ux",
-  worktree: "default",
-  remoteUrl: "https://github.com/tysongoulding/rho-lota/tree/feature/07-ui_ux",
+  repoName: "rho",
+  gitBranch: "feature/wire-up",
+  worktree: "main",
+  remoteUrl: "https://github.com/tysongoulding/rho-lota",
   remoteProvider: "github",
   files: DEFAULT_MOCK_FILES,
   selectedFile: null,
   attachedFiles: [],
-  maxContextTokens: 200_000,
+  maxContextTokens: 128000,
+  isLoadingFiles: false,
 
   setWorkspacePath: (path: string) => set({ workspacePath: path }),
   setRepoName: (repo: string) => set({ repoName: repo }),
@@ -121,16 +141,54 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   setRemoteUrl: (url: string) => set({ remoteUrl: url }),
   setRemoteProvider: (provider: GitProvider) => set({ remoteProvider: provider }),
   setFiles: (files: FileNode[]) => set({ files }),
-  selectFile: (file) => set({ selectedFile: file }),
+  selectFile: (file: { path: string; content?: string } | null) => set({ selectedFile: file }),
+
   attachFile: (path: string) =>
     set((state) => ({
       attachedFiles: state.attachedFiles.includes(path)
         ? state.attachedFiles
         : [...state.attachedFiles, path],
     })),
+
   removeAttachedFile: (path: string) =>
     set((state) => ({
       attachedFiles: state.attachedFiles.filter((p) => p !== path),
     })),
+
   clearAttachedFiles: () => set({ attachedFiles: [] }),
+
+  fetchWorkspaceFiles: async (targetPath?: string) => {
+    const basePath = targetPath || get().workspacePath;
+    if (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window) {
+      set({ isLoadingFiles: true });
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        const rawEntries = await invoke<WorkspaceEntryPayload[]>("list_workspace_entries", {
+          basePath,
+        });
+        const mapped = rawEntries.map(mapPayloadToNode);
+        set({ files: mapped, isLoadingFiles: false });
+      } catch (err) {
+        console.warn("Failed to fetch workspace files via Tauri, keeping mock fallback:", err);
+        set({ isLoadingFiles: false });
+      }
+    }
+  },
+
+  loadFileContent: async (filePath: string): Promise<string> => {
+    if (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window) {
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        const content = await invoke<string>("read_workspace_file", { filePath });
+        set({ selectedFile: { path: filePath, content } });
+        return content;
+      } catch (err) {
+        console.warn("Failed to read file content via Tauri:", err);
+      }
+    }
+
+    const fallback = `// Preview of ${filePath}\n// Loaded from workspace memory buffer.`;
+    set({ selectedFile: { path: filePath, content: fallback } });
+    return fallback;
+  },
 }));

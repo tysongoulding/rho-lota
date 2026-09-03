@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useWorkspaceStore, FileNode } from "../../store/workspaceStore";
 import { useUiStore } from "../../store/uiStore";
 import {
@@ -11,17 +11,35 @@ import {
   Check,
   ChevronRight,
   ChevronDown,
+  RotateCw,
 } from "lucide-react";
 
 export function WorkspaceExplorer() {
-  const { files, workspacePath, gitBranch, attachFile, attachedFiles, selectFile } = useWorkspaceStore();
+  const {
+    files,
+    workspacePath,
+    gitBranch,
+    attachFile,
+    attachedFiles,
+    selectFile,
+    fetchWorkspaceFiles,
+    loadFileContent,
+    isLoadingFiles,
+  } = useWorkspaceStore();
   const { setWorkbenchOpen, setActiveWorkbenchTab } = useUiStore();
   const [filter, setFilter] = useState("");
 
-  const handleInspect = (node: FileNode) => {
-    selectFile({ path: node.path, content: `// Contents of ${node.path}\n// Ready for inspection & editing.` });
-    setActiveWorkbenchTab("file");
-    setWorkbenchOpen(true);
+  useEffect(() => {
+    fetchWorkspaceFiles();
+  }, [fetchWorkspaceFiles]);
+
+  const handleInspect = async (node: FileNode) => {
+    if (!node.isDir) {
+      const content = await loadFileContent(node.path);
+      selectFile({ path: node.path, content });
+      setActiveWorkbenchTab("file");
+      setWorkbenchOpen(true);
+    }
   };
 
   return (
@@ -33,11 +51,19 @@ export function WorkspaceExplorer() {
             <span>Workspace File Explorer</span>
           </h2>
           <p className="text-[#8b949e]">
-            Browse project hierarchy, inspect files, and attach source context into turns.
+            Browse project hierarchy, inspect live files, and attach source context into turns.
           </p>
         </div>
 
         <div className="flex items-center space-x-2">
+          <button
+            onClick={() => fetchWorkspaceFiles()}
+            disabled={isLoadingFiles}
+            className="p-1.5 rounded-lg bg-[#161b22] hover:bg-[#21262d] text-[#8b949e] hover:text-white border border-[#30363d] transition"
+            title="Rescan Workspace Files"
+          >
+            <RotateCw className={`w-3.5 h-3.5 ${isLoadingFiles ? "animate-spin text-blue-400" : ""}`} />
+          </button>
           <span className="font-mono text-[10px] bg-[#161b22] px-2 py-1 rounded border border-[#30363d] text-white">
             Path: {workspacePath} ({gitBranch})
           </span>
@@ -104,82 +130,95 @@ interface FileTreeNodeProps {
 }
 
 function FileTreeNode({ node, filter, onInspect, onAttach, attachedFiles }: FileTreeNodeProps) {
-  const [open, setOpen] = useState(true);
+  const [expanded, setExpanded] = useState(false);
 
-  const matchesFilter = filter ? node.path.toLowerCase().includes(filter.toLowerCase()) : true;
+  const matchesFilter = (n: FileNode): boolean => {
+    if (!filter) return true;
+    if (n.name.toLowerCase().includes(filter.toLowerCase())) return true;
+    if (n.children) {
+      return n.children.some(matchesFilter);
+    }
+    return false;
+  };
+
+  if (!matchesFilter(node)) return null;
+
+  const isAttached = attachedFiles.includes(node.path);
 
   if (node.isDir) {
-    const hasMatchingChildren = node.children?.some(
-      (c) => c.path.toLowerCase().includes(filter.toLowerCase()) || c.isDir
-    );
-
-    if (filter && !matchesFilter && !hasMatchingChildren) {
-      return null;
-    }
-
+    const isExpanded = filter ? true : expanded;
     return (
       <div>
         <div
-          onClick={() => setOpen(!open)}
-          className="flex items-center justify-between px-2 py-1 rounded hover:bg-[#21262d] cursor-pointer text-[#8b949e] hover:text-white transition"
+          onClick={() => setExpanded(!expanded)}
+          className="flex items-center space-x-1.5 py-1 px-1.5 rounded hover:bg-[#21262d] cursor-pointer text-[#8b949e] hover:text-white transition group"
         >
-          <div className="flex items-center space-x-1.5">
-            {open ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3 text-[#484f58]" />}
-            {open ? <FolderOpen className="w-3.5 h-3.5 text-blue-400" /> : <Folder className="w-3.5 h-3.5 text-blue-400" />}
-            <span className="font-medium text-white">{node.name}</span>
-          </div>
+          {isExpanded ? (
+            <ChevronDown className="w-3.5 h-3.5 text-[#8b949e]" />
+          ) : (
+            <ChevronRight className="w-3.5 h-3.5 text-[#8b949e]" />
+          )}
+          {isExpanded ? (
+            <FolderOpen className="w-3.5 h-3.5 text-[#58a6ff]" />
+          ) : (
+            <Folder className="w-3.5 h-3.5 text-[#8b949e]" />
+          )}
+          <span className="font-semibold text-white">{node.name}</span>
         </div>
 
-        {open && node.children && (
-          <div className="pl-4 border-l border-[#30363d]/50 ml-2">
-            <FileTreeList
-              nodes={node.children}
-              filter={filter}
-              onInspect={onInspect}
-              onAttach={onAttach}
-              attachedFiles={attachedFiles}
-            />
+        {isExpanded && node.children && (
+          <div className="pl-4 border-l border-[#30363d]/50 ml-2 space-y-0.5">
+            {node.children.map((child) => (
+              <FileTreeNode
+                key={child.path}
+                node={child}
+                filter={filter}
+                onInspect={onInspect}
+                onAttach={onAttach}
+                attachedFiles={attachedFiles}
+              />
+            ))}
           </div>
         )}
       </div>
     );
   }
 
-  if (filter && !matchesFilter) return null;
-
-  const isAttached = attachedFiles.includes(node.path);
-
   return (
-    <div className="flex items-center justify-between px-2 py-1 rounded hover:bg-[#21262d] group transition text-[#c9d1d9]">
+    <div className="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#21262d] transition group">
       <div
         onClick={() => onInspect(node)}
-        className="flex items-center space-x-1.5 cursor-pointer truncate flex-1 hover:text-white"
+        className="flex items-center space-x-2 cursor-pointer flex-1 truncate"
       >
-        {node.name.endsWith(".md") ? (
-          <FileText className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+        {node.name.endsWith(".rs") || node.name.endsWith(".ts") || node.name.endsWith(".tsx") ? (
+          <FileCode className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
         ) : (
-          <FileCode className="w-3.5 h-3.5 text-[#58a6ff] flex-shrink-0" />
+          <FileText className="w-3.5 h-3.5 text-[#8b949e] flex-shrink-0" />
         )}
-        <span className="truncate">{node.name}</span>
-      </div>
-
-      <div className="flex items-center space-x-2">
-        {node.size && (
-          <span className="text-[10px] text-[#484f58] hidden group-hover:inline">
-            {(node.size / 1024).toFixed(1)}k
+        <span className="text-[#c9d1d9] group-hover:text-white truncate">{node.name}</span>
+        {node.size !== undefined && (
+          <span className="text-[10px] text-[#8b949e] hidden sm:inline">
+            {(node.size / 1024).toFixed(1)} KB
           </span>
         )}
+      </div>
 
+      <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition">
         <button
-          onClick={() => onAttach(node.path)}
-          className={`p-1 rounded text-[10px] transition ${
+          onClick={(e) => {
+            e.stopPropagation();
+            onAttach(node.path);
+          }}
+          disabled={isAttached}
+          className={`p-1 rounded text-[10px] flex items-center space-x-1 ${
             isAttached
-              ? "bg-green-950/40 text-green-400 border border-green-800/40"
+              ? "bg-emerald-950/40 text-emerald-400 border border-emerald-800/40"
               : "hover:bg-[#30363d] text-[#8b949e] hover:text-white"
           }`}
-          title={isAttached ? "Tagged in prompt context" : "Attach @file into prompt"}
+          title={isAttached ? "Attached to context" : "Attach file to turn context (@file)"}
         >
           {isAttached ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+          <span>{isAttached ? "Attached" : "Attach"}</span>
         </button>
       </div>
     </div>

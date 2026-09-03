@@ -1,21 +1,18 @@
+pub mod engine_bridge;
+pub mod workspace_cmd;
+
+use engine_bridge::{EngineState, handle_rpc_command};
 use rho_harness_core::rpc::protocol::{RpcRequest, RpcResponse};
 use tauri::Manager;
+use workspace_cmd::{execute_shell_command, list_workspace_entries, read_workspace_file, write_workspace_file};
 
 #[tauri::command]
-async fn send_rpc_command(request: RpcRequest, _app_handle: tauri::AppHandle) -> Result<RpcResponse, String> {
-    let req_id = request.id.clone();
-    let cmd_name = match &request.command {
-        rho_harness_core::rpc::protocol::RpcCommand::Prompt { .. } => "prompt",
-        rho_harness_core::rpc::protocol::RpcCommand::Steer { .. } => "steer",
-        rho_harness_core::rpc::protocol::RpcCommand::Abort => "abort",
-        rho_harness_core::rpc::protocol::RpcCommand::ToolResponse { .. } => "tool_response",
-        rho_harness_core::rpc::protocol::RpcCommand::Compact { .. } => "compact",
-        rho_harness_core::rpc::protocol::RpcCommand::SetModel { .. } => "set_model",
-        rho_harness_core::rpc::protocol::RpcCommand::GetState => "get_state",
-        rho_harness_core::rpc::protocol::RpcCommand::Exit => "exit",
-    };
-
-    Ok(RpcResponse::success(req_id, cmd_name, None))
+async fn send_rpc_command(
+    request: RpcRequest,
+    app_handle: tauri::AppHandle,
+    state: tauri::State<'_, EngineState>,
+) -> Result<RpcResponse, String> {
+    handle_rpc_command(request, app_handle, (*state).clone()).await
 }
 
 #[tauri::command]
@@ -64,7 +61,9 @@ fn open_local_path(path: String) {
 fn open_external_url(url: String) {
     #[cfg(target_os = "windows")]
     {
-        let _ = std::process::Command::new("cmd").args(["/C", "start", "", &url]).spawn();
+        let _ = std::process::Command::new("cmd")
+            .args(["/C", "start", "", &url])
+            .spawn();
     }
     #[cfg(target_os = "macos")]
     {
@@ -79,6 +78,7 @@ fn open_external_url(url: String) {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .manage(EngineState::default())
         .invoke_handler(tauri::generate_handler![
             send_rpc_command,
             start_drag_window,
@@ -86,7 +86,11 @@ pub fn run() {
             toggle_maximize_window,
             close_window,
             open_local_path,
-            open_external_url
+            open_external_url,
+            list_workspace_entries,
+            read_workspace_file,
+            write_workspace_file,
+            execute_shell_command
         ])
         .setup(|app| {
             if let Some(main_window) = app.get_webview_window("main") {
