@@ -17,7 +17,6 @@ import {
   Layers,
   Presentation,
   Shield,
-  Clock,
 } from "lucide-react";
 
 interface HomeHeroViewProps {
@@ -186,14 +185,10 @@ export function HomeHeroView({ fullname, onSelectPrompt }: HomeHeroViewProps) {
                 toggleTimeFormat();
               }
             }}
-            className="group cursor-pointer select-none text-4xl sm:text-5xl font-extrabold text-white tracking-tight flex items-center justify-center space-x-3 hover:opacity-90 active:scale-[0.98] transition-all"
+            className="cursor-pointer select-none text-4xl sm:text-5xl font-extrabold text-white tracking-tight flex items-center justify-center hover:text-[#58a6ff] active:scale-[0.98] transition-all font-mono"
             title={`Click to switch to ${use24Hour ? "12-hour (AM/PM)" : "24-hour (Military)"} time format`}
           >
-            <Clock className="w-7 h-7 sm:w-8 sm:h-8 text-[#58a6ff] group-hover:rotate-12 transition-transform" />
-            <span className="font-mono">{timeString}</span>
-            <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-[#161b22] border border-[#30363d] text-[#8b949e] group-hover:border-blue-500 group-hover:text-white transition">
-              {use24Hour ? "24H" : "12H"}
-            </span>
+            <span>{timeString}</span>
           </div>
           <p className="text-xs sm:text-sm text-[#8b949e] font-medium">{dateString}</p>
         </div>
