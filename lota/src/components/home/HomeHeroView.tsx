@@ -209,9 +209,7 @@ export function HomeHeroView({ fullname, onSelectPrompt }: HomeHeroViewProps) {
 
       {/* Centered Chat Prompt Input in the Main View */}
       <div className="w-full max-w-3xl my-6 space-y-4">
-        <div className="bg-[#161b22] border border-[#30363d] rounded-2xl shadow-2xl overflow-hidden focus-within:border-[#58a6ff] transition-all">
-          <PromptInput placeholder="What would you like to build, verify, or automate today?" />
-        </div>
+        <PromptInput placeholder="What would you like to build, verify, or automate today?" />
 
         {/* Quick Suggestion Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">

@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useSessionStore } from "../../store/sessionStore";
 import { useWorkspaceStore } from "../../store/workspaceStore";
 import { useSubagentStore } from "../../store/subagentStore";
@@ -38,6 +38,15 @@ export function PromptInput({ placeholder }: PromptInputProps = {}) {
   const { enqueue } = useTurnQueue();
 
   const activeAgent = subagents.find((a) => a.id === activeChatAgentId);
+
+  // Auto-expand textarea height fluidly up to 180px as user types
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      const scrollHeight = textareaRef.current.scrollHeight;
+      textareaRef.current.style.height = `${Math.min(Math.max(scrollHeight, 36), 180)}px`;
+    }
+  }, [text]);
 
   const handleSend = useCallback(async () => {
     let content = text.trim();
@@ -118,7 +127,7 @@ export function PromptInput({ placeholder }: PromptInputProps = {}) {
           {attachedFiles.map((file) => (
             <span
               key={file}
-              className="flex items-center space-x-1.5 bg-[#0d1117] border border-[#30363d] text-[#58a6ff] px-2 py-0.5 rounded-md text-[11px] font-mono"
+              className="flex items-center space-x-1.5 bg-[#161b22] border border-[#30363d] text-[#58a6ff] px-2.5 py-0.5 rounded-lg text-[11px] font-mono shadow-sm"
             >
               <FileCode className="w-3 h-3" />
               <span>{file}</span>
@@ -146,88 +155,90 @@ export function PromptInput({ placeholder }: PromptInputProps = {}) {
         />
       )}
 
-      {/* Main Textarea Container */}
-      <div className="flex items-end space-x-2 bg-[#0d1117] border border-[#30363d] rounded-xl p-2 focus-within:border-blue-500 transition shadow-inner">
-        <textarea
-          ref={textareaRef}
-          value={text}
-          onChange={handleChange}
-          onKeyDown={handleKeyDown}
-          placeholder={
-            placeholder ||
-            (isRunning
-              ? "Type to queue follow-up message..."
-              : activeAgent
-              ? `Ask ${activeAgent.name} anything, or use @file / /command...`
-              : "Ask Rho anything, or use @file / /command...")
-          }
-          rows={Math.min(6, Math.max(1, text.split("\n").length))}
-          className="flex-1 bg-transparent border-none resize-none outline-none text-xs md:text-sm text-white placeholder-[#484f58] max-h-36 py-1 px-1.5"
-        />
-
-        <div className="flex items-center space-x-1.5 flex-shrink-0">
-          <ContextRingGauge onClick={() => setShowContextModal(true)} />
-
-          {isRunning ? (
-            <button
-              onClick={abort}
-              className="p-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white transition"
-              title="Abort Turn (Esc)"
-            >
-              <Square className="w-4 h-4" />
-            </button>
-          ) : (
-            <button
-              onClick={handleSend}
-              disabled={!text.trim() && attachedFiles.length === 0}
-              className="p-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white transition shadow-sm"
-              title="Send Message (Enter)"
-            >
-              <Send className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Prompt Composer Footer Toolbar */}
-      <div className="flex items-center justify-between mt-2.5 px-1 text-[10px] text-[#8b949e]">
-        {/* Left Side: Context Plus Dropup + Dynamic Model Dropup + View Usage */}
-        <div className="flex items-center space-x-2">
-          <AddContextDropup
-            onInsertMention={handleInsertChar}
-            onOpenBrowserTool={handleOpenBrowserTool}
+      {/* Unified Compact Prompt Card */}
+      <div className="bg-[#161b22] border border-[#30363d] rounded-2xl p-2.5 focus-within:border-[#58a6ff]/70 focus-within:ring-1 focus-within:ring-[#58a6ff]/20 shadow-xl transition-all space-y-2">
+        {/* Upper Input Area (Textarea + Send/Ring Action Cluster) */}
+        <div className="flex items-end space-x-2">
+          <textarea
+            ref={textareaRef}
+            value={text}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+            placeholder={
+              placeholder ||
+              (isRunning
+                ? "Type to queue follow-up message..."
+                : activeAgent
+                ? `Ask ${activeAgent.name} anything, or use @file / /command...`
+                : "Ask Rho anything, or use @file / /command...")
+            }
+            className="flex-1 bg-transparent border-none resize-none outline-none text-xs md:text-sm text-white placeholder-[#6e7681] min-h-[36px] max-h-44 py-1 px-1 leading-relaxed overflow-y-auto"
           />
 
-          <ModelDropupPicker />
+          <div className="flex items-center space-x-1.5 flex-shrink-0 pb-0.5">
+            <ContextRingGauge onClick={() => setShowContextModal(true)} />
 
-          <button
-            type="button"
-            onClick={handleOpenUsageWorkbench}
-            className="flex items-center space-x-1 px-2.5 py-1 rounded-lg text-xs font-medium text-[#c9d1d9] hover:text-white bg-[#161b22] hover:bg-[#21262d] border border-[#30363d] transition shadow-sm"
-            title="Open Token Usage & Cost Ledger (Right Workbench)"
-          >
-            <BarChart3 className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="text-[11px]">Usage</span>
-          </button>
+            {isRunning ? (
+              <button
+                onClick={abort}
+                className="p-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-white transition shadow-sm"
+                title="Abort Turn (Esc)"
+              >
+                <Square className="w-4 h-4" />
+              </button>
+            ) : (
+              <button
+                onClick={handleSend}
+                disabled={!text.trim() && attachedFiles.length === 0}
+                className="p-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-30 text-white transition shadow-sm"
+                title="Send Message (Enter)"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Right Side: Right-Aligned Keyboard Hints */}
-        <div className="flex items-center space-x-3 text-[10px] text-[#8b949e]">
-          {isRunning && (
-            <div className="flex items-center space-x-1 text-blue-400 font-medium">
-              <CornerDownLeft className="w-3 h-3" />
-              <span>Queueing enabled</span>
-            </div>
-          )}
+        {/* Lower Toolbar: Tools on Left, Keyboard Hints on Right */}
+        <div className="flex items-center justify-between pt-1.5 border-t border-[#30363d]/60 text-[10px] text-[#8b949e]">
+          {/* Left: Quick Actions */}
+          <div className="flex items-center space-x-1.5">
+            <AddContextDropup
+              onInsertMention={handleInsertChar}
+              onOpenBrowserTool={handleOpenBrowserTool}
+            />
 
-          <div className="flex items-center space-x-1.5 font-medium">
-            <span>
-              <kbd className="bg-[#21262d] px-1.5 py-0.5 rounded border border-[#30363d] text-[9px] text-[#c9d1d9] font-mono">Enter</kbd> submit
-            </span>
-            <span className="text-[#484f58]">•</span>
-            <span>
-              <kbd className="bg-[#21262d] px-1.5 py-0.5 rounded border border-[#30363d] text-[9px] text-[#c9d1d9] font-mono">Shift+Enter</kbd> newline
-            </span>
+            <ModelDropupPicker />
+
+            <button
+              type="button"
+              onClick={handleOpenUsageWorkbench}
+              className="flex items-center space-x-1 px-2 py-1 rounded-lg text-xs font-medium text-[#c9d1d9] hover:text-white bg-[#0d1117] hover:bg-[#21262d] border border-[#30363d] transition"
+              title="Open Token Usage & Cost Ledger"
+            >
+              <BarChart3 className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-[11px]">Usage</span>
+            </button>
+          </div>
+
+          {/* Right: Keyboard Shortcuts */}
+          <div className="flex items-center space-x-2 text-[10px] text-[#8b949e]">
+            {isRunning && (
+              <div className="flex items-center space-x-1 text-blue-400 font-medium mr-1">
+                <CornerDownLeft className="w-3 h-3" />
+                <span>Queueing</span>
+              </div>
+            )}
+
+            <div className="flex items-center space-x-1.5 font-medium">
+              <span>
+                <kbd className="bg-[#0d1117] px-1.5 py-0.5 rounded border border-[#30363d] text-[9px] text-[#c9d1d9] font-mono">Enter</kbd> submit
+              </span>
+              <span className="text-[#484f58]">•</span>
+              <span>
+                <kbd className="bg-[#0d1117] px-1.5 py-0.5 rounded border border-[#30363d] text-[9px] text-[#c9d1d9] font-mono">Shift+Enter</kbd> newline
+              </span>
+            </div>
           </div>
         </div>
       </div>
