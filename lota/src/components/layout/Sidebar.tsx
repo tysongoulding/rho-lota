@@ -469,16 +469,6 @@ export function Sidebar() {
         </button>
       </div>
 
-      {/* Session ID Footer */}
-      {sessionInfo.id && (
-        <div className="p-3 border-t border-[#30363d] bg-[#161b22] flex-shrink-0">
-          <div className="text-[10px] text-[#8b949e] mb-0.5">Session ID</div>
-          <div className="font-mono text-[10px] text-white truncate">
-            {sessionInfo.id}
-          </div>
-        </div>
-      )}
-
       {/* Standalone Agent Detail / Edit Modal */}
       {editingSubagent && (
         <SubagentDetailModal
