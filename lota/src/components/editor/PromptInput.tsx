@@ -7,7 +7,11 @@ import { useTurnQueue } from "../../hooks/useTurnQueue";
 import { AutocompleteMenu } from "./AutocompleteMenu";
 import { Send, Square, CornerDownLeft, FileCode, X } from "lucide-react";
 
-export function PromptInput() {
+interface PromptInputProps {
+  placeholder?: string;
+}
+
+export function PromptInput({ placeholder }: PromptInputProps = {}) {
   const [text, setText] = useState("");
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [autocompleteFilter, setAutocompleteFilter] = useState("");
@@ -112,11 +116,12 @@ export function PromptInput() {
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           placeholder={
-            isRunning
+            placeholder ||
+            (isRunning
               ? "Type to queue follow-up message..."
               : activeAgent
               ? `Ask ${activeAgent.name} anything, or use @file / /command...`
-              : "Ask Rho anything, or use @file / /command..."
+              : "Ask Rho anything, or use @file / /command...")
           }
           rows={Math.min(6, Math.max(1, text.split("\n").length))}
           className="flex-1 bg-transparent border-none resize-none outline-none text-xs md:text-sm text-white placeholder-[#484f58] max-h-36 py-1 px-1.5"

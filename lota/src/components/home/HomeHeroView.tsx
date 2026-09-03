@@ -163,16 +163,13 @@ export function HomeHeroView({ fullname, onSelectPrompt }: HomeHeroViewProps) {
           <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
             {greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#58a6ff] via-purple-400 to-pink-400">{displayName}</span>
           </h1>
-          <p className="text-xs text-[#8b949e] max-w-md mx-auto">
-            What would you like to build, verify, or automate today?
-          </p>
         </div>
       </div>
 
       {/* Centered Chat Prompt Input in the Main View */}
       <div className="w-full max-w-3xl my-6 space-y-4">
         <div className="bg-[#161b22] border border-[#30363d] rounded-2xl shadow-2xl overflow-hidden focus-within:border-[#58a6ff] transition-all">
-          <PromptInput />
+          <PromptInput placeholder="What would you like to build, verify, or automate today?" />
         </div>
 
         {/* Quick Suggestion Cards */}
