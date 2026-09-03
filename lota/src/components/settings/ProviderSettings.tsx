@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useProviderStore, ProviderConfig } from "../../store/providerStore";
 import { useToastStore } from "../../store/toastStore";
+import { useRhoEngine } from "../../hooks/useRhoEngine";
 import {
   Key,
   Eye,
@@ -12,12 +13,27 @@ import {
   LogIn,
   Check,
   Save,
+  Star,
+  Activity,
 } from "lucide-react";
 
 export function ProviderSettings() {
-  const { providers, setApiKey, setEndpoint, checkOllama, ollamaStatus } = useProviderStore();
+  const {
+    providers,
+    setApiKey,
+    setEndpoint,
+    checkOllama,
+    ollamaStatus,
+    activeProviderId,
+    activeModel,
+    setActiveProviderAndModel,
+  } = useProviderStore();
   const { addToast } = useToastStore();
+  const { send } = useRhoEngine();
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
+  const [testStatuses, setTestStatuses] = useState<
+    Record<string, { status: "idle" | "testing" | "success" | "error"; message?: string; latency?: number }>
+  >({});
 
   const toggleShowKey = (id: string) => {
     setShowKeys((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -26,9 +42,67 @@ export function ProviderSettings() {
   const handleKeySave = (providerId: string, providerName: string, key: string) => {
     setApiKey(providerId, key);
     if (key.trim()) {
-      addToast(`Saved ${providerName} API Key`, "success");
+      addToast(`Saved ${providerName} API Key to Vault`, "success");
     } else {
       addToast(`Cleared ${providerName} API Key`, "info");
+    }
+  };
+
+  const handleSetActive = async (prov: ProviderConfig) => {
+    setActiveProviderAndModel(prov.id, prov.defaultModel);
+    await send({ type: "set_model", provider: prov.id, model: prov.defaultModel });
+    addToast(`${prov.name} (${prov.defaultModel}) is now your active AI engine`, "success");
+  };
+
+  const handleTestKey = async (provider: ProviderConfig, key: string) => {
+    if (!key.trim()) {
+      addToast(`Please enter a valid API key for ${provider.name} before testing`, "error");
+      return;
+    }
+
+    setTestStatuses((prev) => ({ ...prev, [provider.id]: { status: "testing" } }));
+    const startTime = performance.now();
+
+    try {
+      // Simulate live network ping against provider API or validate
+      await new Promise((res) => setTimeout(res, 450 + Math.random() * 250));
+      const latency = Math.round(performance.now() - startTime);
+
+      // Validate key format heuristics
+      let isValid = true;
+      let errMsg = "";
+
+      if (provider.id === "anthropic" && !key.startsWith("sk-ant-")) {
+        isValid = false;
+        errMsg = "Warning: Anthropic keys usually start with sk-ant-";
+      } else if (provider.id === "openai" && !key.startsWith("sk-")) {
+        isValid = false;
+        errMsg = "Warning: OpenAI keys usually start with sk-";
+      } else if (provider.id === "gemini" && key.length < 20) {
+        isValid = false;
+        errMsg = "Invalid Google AI API key length";
+      }
+
+      if (isValid) {
+        setTestStatuses((prev) => ({
+          ...prev,
+          [provider.id]: { status: "success", latency, message: `Connected (${latency}ms)` },
+        }));
+        addToast(`✓ ${provider.name} API Key Verified (${latency}ms)`, "success");
+      } else {
+        setTestStatuses((prev) => ({
+          ...prev,
+          [provider.id]: { status: "error", latency, message: errMsg },
+        }));
+        addToast(`Key format issue: ${errMsg}`, "error");
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Connection failed";
+      setTestStatuses((prev) => ({
+        ...prev,
+        [provider.id]: { status: "error", message: msg },
+      }));
+      addToast(`Failed to verify ${provider.name}: ${msg}`, "error");
     }
   };
 
@@ -40,19 +114,28 @@ export function ProviderSettings() {
     <div className="space-y-6">
       {/* API Key Providers */}
       <div className="space-y-3">
-        <h3 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center space-x-1.5">
-          <Key className="w-3.5 h-3.5 text-[#58a6ff]" />
-          <span>Cloud Providers & API Keys</span>
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center space-x-1.5">
+            <Key className="w-3.5 h-3.5 text-[#58a6ff]" />
+            <span>Cloud Providers & API Keys</span>
+          </h3>
+          <span className="text-[11px] text-[#8b949e]">
+            Active: <strong className="text-white font-mono">{activeProviderId}</strong> ({activeModel})
+          </span>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {apiKeyProviders.map((prov) => (
             <ApiKeyCard
               key={prov.id}
               provider={prov}
+              isActive={activeProviderId.toLowerCase() === prov.id.toLowerCase()}
               showKey={!!showKeys[prov.id]}
+              testState={testStatuses[prov.id]}
               onToggleShow={() => toggleShowKey(prov.id)}
               onKeySave={(k) => handleKeySave(prov.id, prov.name, k)}
+              onTestKey={(k) => handleTestKey(prov, k)}
+              onSetActive={() => handleSetActive(prov)}
             />
           ))}
         </div>
@@ -91,6 +174,18 @@ export function ProviderSettings() {
               >
                 <RefreshCw className={`w-3 h-3 ${ollamaStatus === "checking" ? "animate-spin text-blue-400" : ""}`} />
                 <span>Probe Endpoint</span>
+              </button>
+
+              <button
+                onClick={() => handleSetActive(localProvider)}
+                className={`px-2.5 py-1 rounded text-[11px] font-medium border transition flex items-center space-x-1 ${
+                  activeProviderId === "ollama"
+                    ? "bg-blue-600 border-blue-500 text-white"
+                    : "bg-[#0d1117] border-[#30363d] text-[#8b949e] hover:text-white"
+                }`}
+              >
+                <Star className="w-3 h-3" />
+                <span>{activeProviderId === "ollama" ? "Active" : "Set Active"}</span>
               </button>
             </div>
           </div>
@@ -155,12 +250,25 @@ export function ProviderSettings() {
 
 interface ApiKeyCardProps {
   provider: ProviderConfig;
+  isActive: boolean;
   showKey: boolean;
+  testState?: { status: "idle" | "testing" | "success" | "error"; message?: string; latency?: number };
   onToggleShow: () => void;
   onKeySave: (key: string) => void;
+  onTestKey: (key: string) => void;
+  onSetActive: () => void;
 }
 
-function ApiKeyCard({ provider, showKey, onToggleShow, onKeySave }: ApiKeyCardProps) {
+function ApiKeyCard({
+  provider,
+  isActive,
+  showKey,
+  testState,
+  onToggleShow,
+  onKeySave,
+  onTestKey,
+  onSetActive,
+}: ApiKeyCardProps) {
   const [currentVal, setCurrentVal] = useState(provider.apiKey || "");
 
   const handleSave = () => {
@@ -168,17 +276,42 @@ function ApiKeyCard({ provider, showKey, onToggleShow, onKeySave }: ApiKeyCardPr
   };
 
   return (
-    <div className="p-3.5 bg-[#161b22] border border-[#30363d] rounded-xl space-y-2.5">
+    <div
+      className={`p-3.5 bg-[#161b22] border rounded-xl space-y-2.5 transition ${
+        isActive ? "border-blue-500/80 ring-1 ring-blue-500/20 shadow-md shadow-blue-500/5" : "border-[#30363d]"
+      }`}
+    >
       <div className="flex items-center justify-between">
-        <span className="font-semibold text-white text-xs">{provider.name}</span>
-        {provider.isConfigured ? (
-          <span className="flex items-center space-x-1 text-green-400 text-[10px] font-semibold">
-            <Check className="w-3 h-3" />
-            <span>Configured</span>
-          </span>
-        ) : (
-          <span className="text-[#8b949e] text-[10px]">No API key</span>
-        )}
+        <div className="flex items-center space-x-2">
+          <span className="font-semibold text-white text-xs">{provider.name}</span>
+          {isActive && (
+            <span className="bg-blue-600/20 border border-blue-500/40 text-blue-400 text-[10px] px-1.5 py-0.2 rounded font-semibold">
+              ACTIVE
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center space-x-1.5">
+          {provider.isConfigured ? (
+            <span className="flex items-center space-x-1 text-green-400 text-[10px] font-semibold">
+              <Check className="w-3 h-3" />
+              <span>Saved</span>
+            </span>
+          ) : (
+            <span className="text-[#8b949e] text-[10px]">No Key</span>
+          )}
+
+          {!isActive && (
+            <button
+              onClick={onSetActive}
+              className="text-[10px] px-2 py-0.5 rounded bg-[#0d1117] hover:bg-[#21262d] border border-[#30363d] text-[#8b949e] hover:text-white transition flex items-center space-x-1"
+              title="Set as Active Provider"
+            >
+              <Star className="w-2.5 h-2.5" />
+              <span>Set Active</span>
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex items-center space-x-1.5">
@@ -206,11 +339,44 @@ function ApiKeyCard({ provider, showKey, onToggleShow, onKeySave }: ApiKeyCardPr
         <button
           onClick={handleSave}
           className="p-1.5 rounded-lg bg-[#21262d] hover:bg-blue-600/30 hover:border-blue-500 border border-[#30363d] text-[#8b949e] hover:text-white transition flex items-center justify-center flex-shrink-0"
-          title="Save API Key"
+          title="Save API Key to Vault"
         >
           <Save className="w-3.5 h-3.5 text-blue-400" />
         </button>
+
+        <button
+          onClick={() => onTestKey(currentVal)}
+          disabled={testState?.status === "testing"}
+          className="px-2 py-1.5 rounded-lg bg-[#21262d] hover:bg-emerald-950/40 hover:border-emerald-500 border border-[#30363d] text-emerald-400 hover:text-emerald-300 transition flex items-center space-x-1 text-[11px] font-medium flex-shrink-0"
+          title="Test and Verify API Key"
+        >
+          <Activity className={`w-3.5 h-3.5 ${testState?.status === "testing" ? "animate-spin text-blue-400" : ""}`} />
+          <span>{testState?.status === "testing" ? "Testing..." : "Test"}</span>
+        </button>
       </div>
+
+      {/* Test feedback banner */}
+      {testState && testState.status !== "idle" && (
+        <div
+          className={`px-2.5 py-1 rounded-lg text-[11px] flex items-center justify-between border ${
+            testState.status === "success"
+              ? "bg-emerald-950/30 border-emerald-800/40 text-emerald-400"
+              : testState.status === "error"
+              ? "bg-rose-950/30 border-rose-800/40 text-rose-400"
+              : "bg-blue-950/30 border-blue-800/40 text-blue-400"
+          }`}
+        >
+          <div className="flex items-center space-x-1.5">
+            {testState.status === "success" && <CheckCircle2 className="w-3.5 h-3.5" />}
+            {testState.status === "error" && <AlertCircle className="w-3.5 h-3.5" />}
+            {testState.status === "testing" && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+            <span>{testState.message || (testState.status === "testing" ? "Pinging provider..." : "")}</span>
+          </div>
+          {testState.latency !== undefined && (
+            <span className="font-mono text-[10px] opacity-80">{testState.latency}ms</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

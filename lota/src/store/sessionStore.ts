@@ -61,6 +61,7 @@ interface SessionState {
   appendBufferedReasoning: (chunk: string) => void;
   clearPendingApproval: () => void;
   resetSession: () => void;
+  setSessionModel: (provider: string, model: string) => void;
 }
 
 export const useSessionStore = create<SessionState>((set) => ({
@@ -71,6 +72,15 @@ export const useSessionStore = create<SessionState>((set) => ({
   messages: [],
   rawEvents: [],
   pendingApproval: null,
+
+  setSessionModel: (provider: string, model: string) =>
+    set((state) => ({
+      sessionInfo: {
+        ...state.sessionInfo,
+        provider,
+        model,
+      },
+    })),
 
   addUserMessage: (content: string) =>
     set((state) => ({

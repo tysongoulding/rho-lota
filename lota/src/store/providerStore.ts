@@ -110,6 +110,7 @@ const DEFAULT_PROVIDERS: Record<string, ProviderConfig> = {
 const STORAGE_KEYS = {
   PROVIDERS: "rho_lota_providers_vault_v1",
   PREAMBLES: "rho_lota_preambles_v1",
+  ACTIVE_SELECTION: "rho_lota_active_selection_v1",
 };
 
 const loadInitialProviders = (): Record<string, ProviderConfig> => {
@@ -123,35 +124,41 @@ const loadInitialProviders = (): Record<string, ProviderConfig> => {
   return DEFAULT_PROVIDERS;
 };
 
-const loadInitialPreambles = (): PreamblePreset[] => {
+const loadInitialActive = (): { provider: string; model: string } => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEYS.PREAMBLES);
+    const raw = localStorage.getItem(STORAGE_KEYS.ACTIVE_SELECTION);
     if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      return JSON.parse(raw);
     }
   } catch {}
-  return DEFAULT_PREAMBLES;
+  return { provider: "anthropic", model: "claude-3-7-sonnet-20250219" };
 };
 
 interface ProviderState {
   providers: Record<string, ProviderConfig>;
+  activeProviderId: string;
+  activeModel: string;
   ollamaStatus: "online" | "offline" | "checking" | "unknown";
   preambles: PreamblePreset[];
   activePreambleId: string;
 
   setApiKey: (id: string, key: string) => void;
   setEndpoint: (id: string, endpoint: string) => void;
+  setActiveProviderAndModel: (providerId: string, model: string) => void;
   checkOllama: () => Promise<void>;
   savePreamble: (preset: PreamblePreset) => void;
   deletePreamble: (id: string) => void;
   setActivePreambleId: (id: string) => void;
 }
 
+const initialActive = loadInitialActive();
+
 export const useProviderStore = create<ProviderState>((set, get) => ({
   providers: loadInitialProviders(),
+  activeProviderId: initialActive.provider,
+  activeModel: initialActive.model,
   ollamaStatus: "unknown",
-  preambles: loadInitialPreambles(),
+  preambles: DEFAULT_PREAMBLES,
   activePreambleId: "default-coder",
 
   setApiKey: (id, key) =>
@@ -188,6 +195,16 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
       } catch {}
       return { providers: updated };
     }),
+
+  setActiveProviderAndModel: (providerId, model) => {
+    try {
+      localStorage.setItem(
+        STORAGE_KEYS.ACTIVE_SELECTION,
+        JSON.stringify({ provider: providerId, model })
+      );
+    } catch {}
+    set({ activeProviderId: providerId, activeModel: model });
+  },
 
   checkOllama: async () => {
     set({ ollamaStatus: "checking" });
