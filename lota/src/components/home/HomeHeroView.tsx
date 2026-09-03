@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useWeather } from "../../hooks/useWeather";
+import { useUserStore } from "../../store/userStore";
 import { PromptInput } from "../editor/PromptInput";
 import {
   Sun,
@@ -24,7 +25,11 @@ interface HomeHeroViewProps {
   onSelectPrompt?: (prompt: string) => void;
 }
 
-export function HomeHeroView({ fullname = "Tyson Goulding" }: HomeHeroViewProps) {
+export function HomeHeroView({ fullname, onSelectPrompt }: HomeHeroViewProps) {
+  const { getActiveUser } = useUserStore();
+  const activeUser = getActiveUser();
+  const displayName = fullname || activeUser.name || "Developer";
+
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const weather = useWeather();
 
@@ -156,7 +161,7 @@ export function HomeHeroView({ fullname = "Tyson Goulding" }: HomeHeroViewProps)
         {/* Main Personalized Greeting */}
         <div className="space-y-1 pt-2">
           <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-            {greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#58a6ff] via-purple-400 to-pink-400">{fullname}</span>
+            {greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#58a6ff] via-purple-400 to-pink-400">{displayName}</span>
           </h1>
           <p className="text-xs text-[#8b949e] max-w-md mx-auto">
             What would you like to build, verify, or automate today?

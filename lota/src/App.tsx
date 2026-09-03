@@ -98,7 +98,7 @@ export default function App() {
         <main className="flex-1 flex flex-col bg-[#0d1117] min-w-0 overflow-hidden">
           {activeView === "chat" && (
             messages.length === 0 ? (
-              <HomeHeroView fullname="Tyson Goulding" />
+              <HomeHeroView />
             ) : (
               <>
                 {activeAgent && (
