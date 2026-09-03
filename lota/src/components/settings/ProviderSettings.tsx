@@ -27,6 +27,7 @@ export function ProviderSettings() {
     activeProviderId,
     activeModel,
     setActiveProviderAndModel,
+    testProviderKeyLive,
   } = useProviderStore();
   const { addToast } = useToastStore();
   const { send } = useRhoEngine();
@@ -42,7 +43,7 @@ export function ProviderSettings() {
   const handleKeySave = (providerId: string, providerName: string, key: string) => {
     setApiKey(providerId, key);
     if (key.trim()) {
-      addToast(`Saved ${providerName} API Key to Vault`, "success");
+      addToast(`Saved ${providerName} API Key to Vault & Synced with Engine`, "success");
     } else {
       addToast(`Cleared ${providerName} API Key`, "info");
     }
@@ -55,54 +56,29 @@ export function ProviderSettings() {
   };
 
   const handleTestKey = async (provider: ProviderConfig, key: string) => {
-    if (!key.trim()) {
-      addToast(`Please enter a valid API key for ${provider.name} before testing`, "error");
+    const cleanKey = key.trim();
+    if (!cleanKey) {
+      addToast(`Please enter an API key for ${provider.name} before testing`, "error");
       return;
     }
 
     setTestStatuses((prev) => ({ ...prev, [provider.id]: { status: "testing" } }));
-    const startTime = performance.now();
 
-    try {
-      // Simulate live network ping against provider API or validate
-      await new Promise((res) => setTimeout(res, 450 + Math.random() * 250));
-      const latency = Math.round(performance.now() - startTime);
+    // Run real live network test probe against provider endpoint
+    const res = await testProviderKeyLive(provider.id, cleanKey);
 
-      // Validate key format heuristics
-      let isValid = true;
-      let errMsg = "";
-
-      if (provider.id === "anthropic" && !key.startsWith("sk-ant-")) {
-        isValid = false;
-        errMsg = "Warning: Anthropic keys usually start with sk-ant-";
-      } else if (provider.id === "openai" && !key.startsWith("sk-")) {
-        isValid = false;
-        errMsg = "Warning: OpenAI keys usually start with sk-";
-      } else if (provider.id === "gemini" && key.length < 20) {
-        isValid = false;
-        errMsg = "Invalid Google AI API key length";
-      }
-
-      if (isValid) {
-        setTestStatuses((prev) => ({
-          ...prev,
-          [provider.id]: { status: "success", latency, message: `Connected (${latency}ms)` },
-        }));
-        addToast(`✓ ${provider.name} API Key Verified (${latency}ms)`, "success");
-      } else {
-        setTestStatuses((prev) => ({
-          ...prev,
-          [provider.id]: { status: "error", latency, message: errMsg },
-        }));
-        addToast(`Key format issue: ${errMsg}`, "error");
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Connection failed";
+    if (res.success) {
       setTestStatuses((prev) => ({
         ...prev,
-        [provider.id]: { status: "error", message: msg },
+        [provider.id]: { status: "success", latency: res.latency, message: res.message },
       }));
-      addToast(`Failed to verify ${provider.name}: ${msg}`, "error");
+      addToast(`✓ ${provider.name}: ${res.message}`, "success");
+    } else {
+      setTestStatuses((prev) => ({
+        ...prev,
+        [provider.id]: { status: "error", latency: res.latency, message: res.message },
+      }));
+      addToast(`✗ ${provider.name} verification failed: ${res.message}`, "error");
     }
   };
 
@@ -358,7 +334,7 @@ function ApiKeyCard({
       {/* Test feedback banner */}
       {testState && testState.status !== "idle" && (
         <div
-          className={`px-2.5 py-1 rounded-lg text-[11px] flex items-center justify-between border ${
+          className={`px-2.5 py-1.5 rounded-lg text-[11px] flex items-center justify-between border ${
             testState.status === "success"
               ? "bg-emerald-950/30 border-emerald-800/40 text-emerald-400"
               : testState.status === "error"
@@ -366,14 +342,16 @@ function ApiKeyCard({
               : "bg-blue-950/30 border-blue-800/40 text-blue-400"
           }`}
         >
-          <div className="flex items-center space-x-1.5">
-            {testState.status === "success" && <CheckCircle2 className="w-3.5 h-3.5" />}
-            {testState.status === "error" && <AlertCircle className="w-3.5 h-3.5" />}
-            {testState.status === "testing" && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-            <span>{testState.message || (testState.status === "testing" ? "Pinging provider..." : "")}</span>
+          <div className="flex items-center space-x-1.5 truncate mr-2">
+            {testState.status === "success" && <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />}
+            {testState.status === "error" && <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />}
+            {testState.status === "testing" && <RefreshCw className="w-3.5 h-3.5 animate-spin flex-shrink-0" />}
+            <span className="truncate">
+              {testState.message || (testState.status === "testing" ? "Testing provider API endpoint..." : "")}
+            </span>
           </div>
           {testState.latency !== undefined && (
-            <span className="font-mono text-[10px] opacity-80">{testState.latency}ms</span>
+            <span className="font-mono text-[10px] opacity-80 flex-shrink-0">{testState.latency}ms</span>
           )}
         </div>
       )}

@@ -25,17 +25,24 @@ import { NewChatModal } from "./components/modals/NewChatModal";
 import { NewAgentModal } from "./components/modals/NewAgentModal";
 import { HomeHeroView } from "./components/home/HomeHeroView";
 import { useSubagentStore } from "./store/subagentStore";
+import { useProviderStore } from "./store/providerStore";
 import { Bot } from "lucide-react";
 
 export default function App() {
   const { messages, isRunning, addUserMessage } = useSessionStore();
   const { activeView, statusbarOpen } = useUiStore();
   const { subagents, activeChatAgentId } = useSubagentStore();
+  const { syncKeysToBackend } = useProviderStore();
   const { mode } = useThemeStore();
   const { prompt } = useRhoEngine();
   const { queue, dequeue } = useTurnQueue();
 
   const activeAgent = subagents.find((a) => a.id === activeChatAgentId);
+
+  // Sync API keys to Rust engine backend on launch
+  useEffect(() => {
+    syncKeysToBackend();
+  }, [syncKeysToBackend]);
 
   // Register global keyboard shortcuts & drag-and-drop file attachment
   useGlobalShortcuts();

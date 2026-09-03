@@ -1,8 +1,9 @@
 pub mod engine_bridge;
 pub mod workspace_cmd;
 
-use engine_bridge::{EngineState, handle_rpc_command};
+use engine_bridge::{EngineState, ProviderTestResult, handle_rpc_command, test_provider_key_direct};
 use rho_harness_core::rpc::protocol::{RpcRequest, RpcResponse};
+use std::collections::HashMap;
 use tauri::Manager;
 use workspace_cmd::{execute_shell_command, list_workspace_entries, read_workspace_file, write_workspace_file};
 
@@ -13,6 +14,22 @@ async fn send_rpc_command(
     state: tauri::State<'_, EngineState>,
 ) -> Result<RpcResponse, String> {
     handle_rpc_command(request, app_handle, (*state).clone()).await
+}
+
+#[tauri::command]
+async fn sync_provider_keys(keys: HashMap<String, String>, state: tauri::State<'_, EngineState>) -> Result<(), String> {
+    let mut api_keys = state.api_keys.lock().await;
+    for (k, v) in keys {
+        if !v.trim().is_empty() {
+            api_keys.insert(k, v);
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn test_provider_key(provider: String, key: String) -> Result<ProviderTestResult, String> {
+    test_provider_key_direct(&provider, &key).await
 }
 
 #[tauri::command]
@@ -81,6 +98,8 @@ pub fn run() {
         .manage(EngineState::default())
         .invoke_handler(tauri::generate_handler![
             send_rpc_command,
+            sync_provider_keys,
+            test_provider_key,
             start_drag_window,
             minimize_window,
             toggle_maximize_window,

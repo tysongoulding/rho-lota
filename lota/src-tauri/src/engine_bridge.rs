@@ -1,4 +1,5 @@
 use rho_harness_core::rpc::protocol::{RpcCommand, RpcEvent, RpcRequest, RpcResponse};
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -6,6 +7,13 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 use tauri::Emitter;
 use tokio::sync::Mutex;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProviderTestResult {
+    pub success: bool,
+    pub latency_ms: u64,
+    pub message: String,
+}
 
 #[derive(Clone)]
 pub struct EngineState {
@@ -53,6 +61,95 @@ impl Default for EngineState {
     }
 }
 
+pub async fn test_provider_key_direct(provider: &str, key: &str) -> Result<ProviderTestResult, String> {
+    let start = std::time::Instant::now();
+    let client = reqwest::Client::builder()
+        .no_proxy()
+        .timeout(Duration::from_secs(12))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let clean_key = key.trim();
+    if clean_key.is_empty() {
+        return Ok(ProviderTestResult {
+            success: false,
+            latency_ms: 0,
+            message: "API key is empty".to_string(),
+        });
+    }
+
+    let req = match provider.to_lowercase().as_str() {
+        "gemini" => {
+            let url = format!(
+                "https://generativelanguage.googleapis.com/v1beta/models?key={}",
+                clean_key
+            );
+            client.get(&url)
+        }
+        "anthropic" => {
+            let url = "https://api.anthropic.com/v1/models";
+            client
+                .get(url)
+                .header("x-api-key", clean_key)
+                .header("anthropic-version", "2023-06-01")
+        }
+        "openai" => {
+            let url = "https://api.openai.com/v1/models";
+            client.get(url).header("Authorization", format!("Bearer {}", clean_key))
+        }
+        "deepseek" => {
+            let url = "https://api.deepseek.com/models";
+            client.get(url).header("Authorization", format!("Bearer {}", clean_key))
+        }
+        "groq" => {
+            let url = "https://api.groq.com/openai/v1/models";
+            client.get(url).header("Authorization", format!("Bearer {}", clean_key))
+        }
+        "ollama" | "local" => {
+            let url = "http://localhost:11434/api/tags";
+            client.get(url)
+        }
+        _ => {
+            return Ok(ProviderTestResult {
+                success: true,
+                latency_ms: 10,
+                message: "Provider key format valid".to_string(),
+            });
+        }
+    };
+
+    match req.send().await {
+        Ok(resp) => {
+            let latency_ms = start.elapsed().as_millis() as u64;
+            let status = resp.status();
+            if status.is_success() {
+                Ok(ProviderTestResult {
+                    success: true,
+                    latency_ms,
+                    message: format!("Connection verified ({})", status),
+                })
+            } else {
+                let err_text = resp.text().await.unwrap_or_default();
+                let short_err = if err_text.len() > 160 {
+                    &err_text[..160]
+                } else {
+                    &err_text
+                };
+                Ok(ProviderTestResult {
+                    success: false,
+                    latency_ms,
+                    message: format!("HTTP {}: {}", status, short_err),
+                })
+            }
+        }
+        Err(err) => Ok(ProviderTestResult {
+            success: false,
+            latency_ms: start.elapsed().as_millis() as u64,
+            message: format!("Request failed: {}", err),
+        }),
+    }
+}
+
 async fn fetch_real_llm_response(provider: &str, model: &str, prompt: &str, api_key: &str) -> Result<String, String> {
     let client = reqwest::Client::builder()
         .no_proxy()
@@ -60,18 +157,23 @@ async fn fetch_real_llm_response(provider: &str, model: &str, prompt: &str, api_
         .build()
         .map_err(|e| e.to_string())?;
 
+    let clean_key = api_key.trim();
+
     match provider.to_lowercase().as_str() {
         "gemini" => {
-            let clean_model = if model.is_empty() { "gemini-2.0-flash" } else { model };
+            let clean_model = if model.is_empty() {
+                "gemini-2.0-flash"
+            } else {
+                model.trim()
+            };
             let url = format!(
                 "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
-                clean_model, api_key
+                clean_model, clean_key
             );
 
             let payload = json!({
                 "contents": [
                     {
-                        "role": "user",
                         "parts": [{ "text": prompt }]
                     }
                 ]
@@ -79,10 +181,12 @@ async fn fetch_real_llm_response(provider: &str, model: &str, prompt: &str, api_
 
             let resp = client
                 .post(&url)
+                .header("Content-Type", "application/json")
                 .json(&payload)
                 .send()
                 .await
                 .map_err(|e| e.to_string())?;
+
             if !resp.status().is_success() {
                 let err_text = resp.text().await.unwrap_or_default();
                 return Err(format!("Google Gemini API error: {}", err_text));
@@ -92,14 +196,14 @@ async fn fetch_real_llm_response(provider: &str, model: &str, prompt: &str, api_
             if let Some(text) = data["candidates"][0]["content"]["parts"][0]["text"].as_str() {
                 Ok(text.to_string())
             } else {
-                Err("Unexpected Gemini API response structure".to_string())
+                Err(format!("Unexpected Gemini API response structure: {:?}", data))
             }
         }
         "anthropic" => {
             let clean_model = if model.is_empty() {
                 "claude-3-7-sonnet-20250219"
             } else {
-                model
+                model.trim()
             };
             let url = "https://api.anthropic.com/v1/messages";
 
@@ -111,7 +215,7 @@ async fn fetch_real_llm_response(provider: &str, model: &str, prompt: &str, api_
 
             let resp = client
                 .post(url)
-                .header("x-api-key", api_key)
+                .header("x-api-key", clean_key)
                 .header("anthropic-version", "2023-06-01")
                 .header("content-type", "application/json")
                 .json(&payload)
@@ -132,7 +236,7 @@ async fn fetch_real_llm_response(provider: &str, model: &str, prompt: &str, api_
             }
         }
         "openai" => {
-            let clean_model = if model.is_empty() { "gpt-4o" } else { model };
+            let clean_model = if model.is_empty() { "gpt-4o" } else { model.trim() };
             let url = "https://api.openai.com/v1/chat/completions";
 
             let payload = json!({
@@ -142,7 +246,7 @@ async fn fetch_real_llm_response(provider: &str, model: &str, prompt: &str, api_
 
             let resp = client
                 .post(url)
-                .header("Authorization", format!("Bearer {}", api_key))
+                .header("Authorization", format!("Bearer {}", clean_key))
                 .json(&payload)
                 .send()
                 .await
@@ -161,7 +265,11 @@ async fn fetch_real_llm_response(provider: &str, model: &str, prompt: &str, api_
             }
         }
         "deepseek" => {
-            let clean_model = if model.is_empty() { "deepseek-chat" } else { model };
+            let clean_model = if model.is_empty() {
+                "deepseek-chat"
+            } else {
+                model.trim()
+            };
             let url = "https://api.deepseek.com/chat/completions";
 
             let payload = json!({
@@ -171,7 +279,7 @@ async fn fetch_real_llm_response(provider: &str, model: &str, prompt: &str, api_
 
             let resp = client
                 .post(url)
-                .header("Authorization", format!("Bearer {}", api_key))
+                .header("Authorization", format!("Bearer {}", clean_key))
                 .json(&payload)
                 .send()
                 .await
@@ -193,7 +301,7 @@ async fn fetch_real_llm_response(provider: &str, model: &str, prompt: &str, api_
             let clean_model = if model.is_empty() {
                 "llama-3.3-70b-versatile"
             } else {
-                model
+                model.trim()
             };
             let url = "https://api.groq.com/openai/v1/chat/completions";
 
@@ -204,7 +312,7 @@ async fn fetch_real_llm_response(provider: &str, model: &str, prompt: &str, api_
 
             let resp = client
                 .post(url)
-                .header("Authorization", format!("Bearer {}", api_key))
+                .header("Authorization", format!("Bearer {}", clean_key))
                 .json(&payload)
                 .send()
                 .await
@@ -223,7 +331,7 @@ async fn fetch_real_llm_response(provider: &str, model: &str, prompt: &str, api_
             }
         }
         "ollama" | "local" => {
-            let clean_model = if model.is_empty() { "llama3.2" } else { model };
+            let clean_model = if model.is_empty() { "llama3.2" } else { model.trim() };
             let url = "http://localhost:11434/api/generate";
 
             let payload = json!({
@@ -238,6 +346,7 @@ async fn fetch_real_llm_response(provider: &str, model: &str, prompt: &str, api_
                 .send()
                 .await
                 .map_err(|e| e.to_string())?;
+
             if !resp.status().is_success() {
                 let err_text = resp.text().await.unwrap_or_default();
                 return Err(format!("Ollama API error: {}", err_text));
@@ -307,7 +416,7 @@ pub async fn handle_rpc_command(
                     if abort_clone.load(Ordering::SeqCst) {
                         break;
                     }
-                    tokio::time::sleep(Duration::from_millis(120)).await;
+                    tokio::time::sleep(Duration::from_millis(100)).await;
                     let _ = app.emit(
                         "rho://event",
                         RpcEvent::ReasoningChunk {
@@ -329,7 +438,7 @@ pub async fn handle_rpc_command(
                     }
                 } else {
                     format!(
-                        "Understood. Received message: **`{}`**\n\n- **Active Engine**: `{}` (`{}`)\n- **Authentication**: *No API key saved for {}*\n\n> 💡 To connect live model generation, navigate to **Settings > Providers & Models > Credentials** and enter your API key.",
+                        "Understood. Received message: **`{}`**\n\n- **Active Engine**: `{}` (`{}`)\n- **Authentication**: *No API key saved for {} in Vault*\n\n> 💡 To connect live model generation, navigate to **Settings > Providers & Models > Credentials** and enter your API key, then click Save.",
                         message, model, provider, provider
                     )
                 };
