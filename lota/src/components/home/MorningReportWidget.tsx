@@ -196,7 +196,7 @@ export function MorningReportWidget() {
   };
 
   return (
-    <div className="w-full max-w-3xl bg-[#161b22] border border-[#30363d] rounded-2xl overflow-hidden shadow-xl transition-all duration-200">
+    <div className="w-full bg-[#161b22] border border-[#30363d] rounded-2xl overflow-hidden shadow-xl transition-all duration-200">
       {/* Header Bar */}
       <div
         onClick={() => setIsOpen(!isOpen)}
