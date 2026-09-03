@@ -44,12 +44,213 @@ impl Default for EngineState {
                     .unwrap()
                     .as_millis()
             ))),
-            active_model: Arc::new(Mutex::new("claude-3-7-sonnet".to_string())),
-            active_provider: Arc::new(Mutex::new("anthropic".to_string())),
+            active_model: Arc::new(Mutex::new("gemini-2.0-flash".to_string())),
+            active_provider: Arc::new(Mutex::new("gemini".to_string())),
             api_keys: Arc::new(Mutex::new(initial_keys)),
             is_running: Arc::new(AtomicBool::new(false)),
             abort_flag: Arc::new(AtomicBool::new(false)),
         }
+    }
+}
+
+async fn fetch_real_llm_response(provider: &str, model: &str, prompt: &str, api_key: &str) -> Result<String, String> {
+    let client = reqwest::Client::builder()
+        .no_proxy()
+        .timeout(Duration::from_secs(60))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    match provider.to_lowercase().as_str() {
+        "gemini" => {
+            let clean_model = if model.is_empty() { "gemini-2.0-flash" } else { model };
+            let url = format!(
+                "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
+                clean_model, api_key
+            );
+
+            let payload = json!({
+                "contents": [
+                    {
+                        "role": "user",
+                        "parts": [{ "text": prompt }]
+                    }
+                ]
+            });
+
+            let resp = client
+                .post(&url)
+                .json(&payload)
+                .send()
+                .await
+                .map_err(|e| e.to_string())?;
+            if !resp.status().is_success() {
+                let err_text = resp.text().await.unwrap_or_default();
+                return Err(format!("Google Gemini API error: {}", err_text));
+            }
+
+            let data: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
+            if let Some(text) = data["candidates"][0]["content"]["parts"][0]["text"].as_str() {
+                Ok(text.to_string())
+            } else {
+                Err("Unexpected Gemini API response structure".to_string())
+            }
+        }
+        "anthropic" => {
+            let clean_model = if model.is_empty() {
+                "claude-3-7-sonnet-20250219"
+            } else {
+                model
+            };
+            let url = "https://api.anthropic.com/v1/messages";
+
+            let payload = json!({
+                "model": clean_model,
+                "max_tokens": 4096,
+                "messages": [{ "role": "user", "content": prompt }]
+            });
+
+            let resp = client
+                .post(url)
+                .header("x-api-key", api_key)
+                .header("anthropic-version", "2023-06-01")
+                .header("content-type", "application/json")
+                .json(&payload)
+                .send()
+                .await
+                .map_err(|e| e.to_string())?;
+
+            if !resp.status().is_success() {
+                let err_text = resp.text().await.unwrap_or_default();
+                return Err(format!("Anthropic API error: {}", err_text));
+            }
+
+            let data: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
+            if let Some(text) = data["content"][0]["text"].as_str() {
+                Ok(text.to_string())
+            } else {
+                Err("Unexpected Anthropic API response structure".to_string())
+            }
+        }
+        "openai" => {
+            let clean_model = if model.is_empty() { "gpt-4o" } else { model };
+            let url = "https://api.openai.com/v1/chat/completions";
+
+            let payload = json!({
+                "model": clean_model,
+                "messages": [{ "role": "user", "content": prompt }]
+            });
+
+            let resp = client
+                .post(url)
+                .header("Authorization", format!("Bearer {}", api_key))
+                .json(&payload)
+                .send()
+                .await
+                .map_err(|e| e.to_string())?;
+
+            if !resp.status().is_success() {
+                let err_text = resp.text().await.unwrap_or_default();
+                return Err(format!("OpenAI API error: {}", err_text));
+            }
+
+            let data: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
+            if let Some(text) = data["choices"][0]["message"]["content"].as_str() {
+                Ok(text.to_string())
+            } else {
+                Err("Unexpected OpenAI API response structure".to_string())
+            }
+        }
+        "deepseek" => {
+            let clean_model = if model.is_empty() { "deepseek-chat" } else { model };
+            let url = "https://api.deepseek.com/chat/completions";
+
+            let payload = json!({
+                "model": clean_model,
+                "messages": [{ "role": "user", "content": prompt }]
+            });
+
+            let resp = client
+                .post(url)
+                .header("Authorization", format!("Bearer {}", api_key))
+                .json(&payload)
+                .send()
+                .await
+                .map_err(|e| e.to_string())?;
+
+            if !resp.status().is_success() {
+                let err_text = resp.text().await.unwrap_or_default();
+                return Err(format!("DeepSeek API error: {}", err_text));
+            }
+
+            let data: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
+            if let Some(text) = data["choices"][0]["message"]["content"].as_str() {
+                Ok(text.to_string())
+            } else {
+                Err("Unexpected DeepSeek API response structure".to_string())
+            }
+        }
+        "groq" => {
+            let clean_model = if model.is_empty() {
+                "llama-3.3-70b-versatile"
+            } else {
+                model
+            };
+            let url = "https://api.groq.com/openai/v1/chat/completions";
+
+            let payload = json!({
+                "model": clean_model,
+                "messages": [{ "role": "user", "content": prompt }]
+            });
+
+            let resp = client
+                .post(url)
+                .header("Authorization", format!("Bearer {}", api_key))
+                .json(&payload)
+                .send()
+                .await
+                .map_err(|e| e.to_string())?;
+
+            if !resp.status().is_success() {
+                let err_text = resp.text().await.unwrap_or_default();
+                return Err(format!("Groq API error: {}", err_text));
+            }
+
+            let data: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
+            if let Some(text) = data["choices"][0]["message"]["content"].as_str() {
+                Ok(text.to_string())
+            } else {
+                Err("Unexpected Groq API response structure".to_string())
+            }
+        }
+        "ollama" | "local" => {
+            let clean_model = if model.is_empty() { "llama3.2" } else { model };
+            let url = "http://localhost:11434/api/generate";
+
+            let payload = json!({
+                "model": clean_model,
+                "prompt": prompt,
+                "stream": false
+            });
+
+            let resp = client
+                .post(url)
+                .json(&payload)
+                .send()
+                .await
+                .map_err(|e| e.to_string())?;
+            if !resp.status().is_success() {
+                let err_text = resp.text().await.unwrap_or_default();
+                return Err(format!("Ollama API error: {}", err_text));
+            }
+
+            let data: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
+            if let Some(text) = data["response"].as_str() {
+                Ok(text.to_string())
+            } else {
+                Err("Unexpected Ollama API response structure".to_string())
+            }
+        }
+        _ => Err(format!("Unsupported provider: {}", provider)),
     }
 }
 
@@ -66,7 +267,7 @@ pub async fn handle_rpc_command(
             let model = state.active_model.lock().await.clone();
             let provider = state.active_provider.lock().await.clone();
             let keys = state.api_keys.lock().await.clone();
-            let has_key = keys.contains_key(&provider) && !keys.get(&provider).unwrap().is_empty();
+            let api_key = keys.get(&provider).cloned().unwrap_or_default();
 
             state.is_running.store(true, Ordering::SeqCst);
             state.abort_flag.store(false, Ordering::SeqCst);
@@ -96,18 +297,17 @@ pub async fn handle_rpc_command(
                     },
                 );
 
-                // 3. Simulated/Streamed Reasoning Chunks
+                // 3. Simulated Thinking / Reasoning Chunks
                 let reasoning_steps = [
-                    "Analyzing query context and active workspace dependencies...\n",
-                    "Validating AST token constraints and TDD test requirements...\n",
-                    "Formulating solution with zero placeholders and compiling clean code...\n",
+                    "Analyzing query context, workspace files, and intent...\n",
+                    "Evaluating solution parameters and constructing response...\n",
                 ];
 
                 for step in reasoning_steps {
                     if abort_clone.load(Ordering::SeqCst) {
                         break;
                     }
-                    tokio::time::sleep(Duration::from_millis(180)).await;
+                    tokio::time::sleep(Duration::from_millis(120)).await;
                     let _ = app.emit(
                         "rho://event",
                         RpcEvent::ReasoningChunk {
@@ -116,24 +316,31 @@ pub async fn handle_rpc_command(
                     );
                 }
 
-                // 4. Stream Response Text in chunks
-                let key_status = if has_key {
-                    "Authenticated via Settings Key"
+                // 4. Fetch real response if API key is provided
+                let full_response = if !api_key.trim().is_empty() || provider == "ollama" || provider == "local" {
+                    match fetch_real_llm_response(&provider, &model, &message, &api_key).await {
+                        Ok(text) => text,
+                        Err(err) => {
+                            format!(
+                                "⚠️ **Provider Request Failed**\n\n- Provider: `{}`\n- Model: `{}`\n- Error: {}\n\n*Please verify your API key in Settings > Providers & Models > Credentials.*",
+                                provider, model, err
+                            )
+                        }
+                    }
                 } else {
-                    "Running with Default/Local Engine"
+                    format!(
+                        "Understood. Received message: **`{}`**\n\n- **Active Engine**: `{}` (`{}`)\n- **Authentication**: *No API key saved for {}*\n\n> 💡 To connect live model generation, navigate to **Settings > Providers & Models > Credentials** and enter your API key.",
+                        message, model, provider, provider
+                    )
                 };
 
-                let response_text = format!(
-                    "Understood. Executed directive for: **`{}`**\n\n- Model backend: `{}` (`{}`)\n- Provider Auth: **{}**\n- Engine status: **Tokio FSM Online**\n- Workspace state: Clean\n",
-                    message, model, provider, key_status
-                );
-
-                let words: Vec<&str> = response_text.split_inclusive(' ').collect();
+                // Stream real text in small chunks for fluid typewriter display
+                let words: Vec<&str> = full_response.split_inclusive(' ').collect();
                 for word in words {
                     if abort_clone.load(Ordering::SeqCst) {
                         break;
                     }
-                    tokio::time::sleep(Duration::from_millis(35)).await;
+                    tokio::time::sleep(Duration::from_millis(15)).await;
                     let _ = app.emit(
                         "rho://event",
                         RpcEvent::TextChunk {
@@ -143,12 +350,13 @@ pub async fn handle_rpc_command(
                 }
 
                 // 5. Usage Telemetry Update
+                let est_tokens = (full_response.len() / 4) as u64;
                 let _ = app.emit(
                     "rho://event",
                     RpcEvent::UsageUpdate {
-                        input_tokens: Some(420),
-                        output_tokens: Some(185),
-                        context_percent: Some(12.4),
+                        input_tokens: Some(180),
+                        output_tokens: Some(est_tokens),
+                        context_percent: Some(6.2),
                     },
                 );
 
@@ -201,17 +409,10 @@ pub async fn handle_rpc_command(
                     content: format!("\n\n> *Steered direction: {}*\n\n", message),
                 },
             );
-            Ok(RpcResponse::success(
-                req_id,
-                "steer",
-                Some(json!({ "steered": true })),
-            ))
+            Ok(RpcResponse::success(req_id, "steer", Some(json!({ "steered": true }))))
         }
 
-        RpcCommand::ToolResponse {
-            approval_id,
-            decision,
-        } => {
+        RpcCommand::ToolResponse { approval_id, decision } => {
             let _ = app_handle.emit(
                 "rho://event",
                 RpcEvent::ToolCallResult {
