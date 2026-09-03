@@ -1,63 +1,82 @@
-import { ToyBrick, CheckCircle2, ShieldCheck, Bell, Sparkles } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ToyBrick, CheckCircle2, Sparkles } from "lucide-react";
+
+interface PluginItem {
+  id: string;
+  name: string;
+  version: string;
+  type: string;
+  status: string;
+  icon: typeof ToyBrick;
+  color: string;
+  description: string;
+  capabilities: string[];
+}
+
+const DEFAULT_PLUGINS: PluginItem[] = [
+  {
+    id: "rho-plugin-sdk",
+    name: "Rho Plugin SDK",
+    version: "v0.1.7",
+    type: "Core Rust Workspace Crate",
+    status: "Active (Compiled)",
+    icon: ToyBrick,
+    color: "text-blue-400",
+    description: "Native Rust daemon plugin runtime and RPC lifecycle event dispatch engine.",
+    capabilities: ["Process Hooking", "Event Interception", "IPC Protocol"],
+  },
+  {
+    id: "dev-workflow",
+    name: "Dev Workflow Toolkit",
+    version: "v1.4.0",
+    type: "Workflow Extension",
+    status: "Active",
+    icon: Sparkles,
+    color: "text-purple-400",
+    description: "Auditing, sanitization, and release cycle management for local development kits.",
+    capabilities: ["Audit Plugins", "Sanitize Gate", "Semantic Versioning"],
+  },
+  {
+    id: "delivery-team-plugin",
+    name: "Delivery Engineering Team",
+    version: "v3.1.0",
+    type: "Multi-Agent Protocol",
+    status: "Active",
+    icon: ToyBrick,
+    color: "text-pink-400",
+    description: "Autonomous virtual engineering teams: intake, architecture, TDD build, and release notes.",
+    capabilities: ["Strict Red-First TDD", "Defect Catalogs", "Release Logs"],
+  },
+];
 
 export function PluginsCustomiseTab() {
-  const plugins = [
-    {
-      id: "rho-plugin-sdk",
-      name: "Rho Plugin SDK",
-      version: "v0.1.5",
-      type: "Core Rust Workspace Crate",
-      status: "Active (Compiled)",
-      icon: ToyBrick,
-      color: "text-blue-400",
-      description: "Native Rust daemon plugin runtime and RPC lifecycle event dispatch engine.",
-      capabilities: ["Process Hooking", "Event Interception", "IPC Protocol"],
-    },
-    {
-      id: "python-guard",
-      name: "Python Guard Plugin",
-      version: "v1.2.0",
-      type: "Execution Guard",
-      status: "Active",
-      icon: ShieldCheck,
-      color: "text-green-400",
-      description: "Prevents execution of unsafe python commands and audits virtual environment isolation.",
-      capabilities: ["AST Analysis", "Virtualenv Sandboxing", "Pre-Execution Gate"],
-    },
-    {
-      id: "node-notifier",
-      name: "Node Notifier Daemon",
-      version: "v2.0.1",
-      type: "Notification Sidecar",
-      status: "Active",
-      icon: Bell,
-      color: "text-yellow-400",
-      description: "Delivers native desktop toast alerts for long-running builds and asynchronous agent wakeups.",
-      capabilities: ["Windows Toast", "Audio Cue", "Background Worker"],
-    },
-    {
-      id: "dev-workflow",
-      name: "Dev Workflow Toolkit",
-      version: "v1.4.0",
-      type: "Workflow Extension",
-      status: "Active",
-      icon: Sparkles,
-      color: "text-purple-400",
-      description: "Auditing, sanitization, and release cycle management for local development kits.",
-      capabilities: ["Audit Plugins", "Sanitize Gate", "Semantic Versioning"],
-    },
-    {
-      id: "delivery-team-plugin",
-      name: "Delivery Engineering Team",
-      version: "v3.1.0",
-      type: "Multi-Agent Protocol",
-      status: "Active",
-      icon: ToyBrick,
-      color: "text-pink-400",
-      description: "Autonomous virtual engineering teams: intake, architecture, TDD build, and release notes.",
-      capabilities: ["Strict Red-First TDD", "Defect Catalogs", "Release Logs"],
-    },
-  ];
+  const [plugins, setPlugins] = useState<PluginItem[]>(DEFAULT_PLUGINS);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window) {
+      import("@tauri-apps/api/core").then(({ invoke }) => {
+        invoke<{ plugins: Array<{ name: string; command?: string; path: string; enabled: boolean; replaces: string[] }> }>("get_configured_plugins_and_mcps")
+          .then((res) => {
+            if (res && res.plugins && res.plugins.length > 0) {
+              setPlugins(
+                res.plugins.map((p) => ({
+                  id: p.name,
+                  name: p.name,
+                  version: "v0.1.7",
+                  type: "Daemon Plugin",
+                  status: p.enabled ? "Active" : "Disabled",
+                  icon: ToyBrick,
+                  color: "text-purple-400",
+                  description: p.command ? `Executable: ${p.command}` : `Path: ${p.path}`,
+                  capabilities: p.replaces.length > 0 ? p.replaces : ["Event Interception"],
+                }))
+              );
+            }
+          })
+          .catch((err) => console.warn("Failed to load plugins from backend:", err));
+      });
+    }
+  }, []);
 
   return (
     <div className="flex-1 overflow-y-auto p-5 space-y-5 max-w-5xl mx-auto text-xs text-[#c9d1d9]">

@@ -1,81 +1,90 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Zap, Search, Folder, Terminal } from "lucide-react";
+
+interface SkillItem {
+  name: string;
+  category?: string;
+  triggers: string[];
+  description: string;
+  path: string;
+  tokens: number;
+}
+
+const FALLBACK_SKILLS: SkillItem[] = [
+  {
+    name: "agy-customizations",
+    category: "Built-in System",
+    triggers: ["customizations", "skills", "rules", "plugins"],
+    description: "Comprehensive guide for the Antigravity Customization System (loading priority, rules, MCP, sidecars).",
+    path: "C:\\Users\\tyson\\.gemini\\antigravity\\builtin\\skills\\agy-customizations",
+    tokens: 65,
+  },
+  {
+    name: "librarian",
+    category: "Durable Knowledge",
+    triggers: ["librarian", "save to library", "search library", "architecture direction"],
+    description: "Curates durable knowledge and decisions into shared library for one-shot retrieval.",
+    path: "C:\\Users\\tyson\\.gemini\\config\\plugins\\librarian-plugin\\skills\\librarian",
+    tokens: 95,
+  },
+  {
+    name: "team-build",
+    category: "Engineering Delivery",
+    triggers: ["team-build", "build this plan", "run build team"],
+    description: "Runs virtual engineering team (planner, implementer, verifier, reviewer) under strict red-to-green TDD.",
+    path: "C:\\Users\\tyson\\.gemini\\config\\plugins\\delivery-team-plugin\\skills\\team-build",
+    tokens: 110,
+  },
+  {
+    name: "team-qa",
+    category: "Quality Assurance",
+    triggers: ["team-qa", "qa check", "test plan"],
+    description: "Runs virtual QA team (cartographer, risk analyst, test architects) to prevent silent regressions.",
+    path: "C:\\Users\\tyson\\.gemini\\config\\plugins\\delivery-team-plugin\\skills\\team-qa",
+    tokens: 105,
+  },
+  {
+    name: "wrap-up",
+    category: "Git Lifecycle",
+    triggers: ["wrap up", "/wrap-up", "close out work"],
+    description: "Audits uncommitted changes, surfaces decisions, commits, pushes, and merges cleanly.",
+    path: "C:\\Users\\tyson\\.gemini\\config\\plugins\\dev-workflow\\skills\\wrap-up",
+    tokens: 75,
+  },
+];
 
 export function SkillsCustomiseTab() {
   const [search, setSearch] = useState("");
+  const [skills, setSkills] = useState<SkillItem[]>(FALLBACK_SKILLS);
 
-  const skills = [
-    {
-      name: "agy-customizations",
-      category: "Built-in System",
-      triggers: ["customizations", "skills", "rules", "plugins"],
-      description: "Comprehensive guide for the Antigravity Customization System (loading priority, rules, MCP, sidecars).",
-      path: "C:\\Users\\tyson\\.gemini\\antigravity\\builtin\\skills\\agy-customizations",
-      tokens: 65,
-    },
-    {
-      name: "librarian",
-      category: "Durable Knowledge",
-      triggers: ["librarian", "save to library", "search library", "architecture direction"],
-      description: "Curates durable knowledge and decisions into shared library for one-shot retrieval.",
-      path: "C:\\Users\\tyson\\.gemini\\config\\plugins\\librarian-plugin\\skills\\librarian",
-      tokens: 95,
-    },
-    {
-      name: "team-build",
-      category: "Engineering Delivery",
-      triggers: ["team-build", "build this plan", "run build team"],
-      description: "Runs virtual engineering team (planner, implementer, verifier, reviewer) under strict red-to-green TDD.",
-      path: "C:\\Users\\tyson\\.gemini\\config\\plugins\\delivery-team-plugin\\skills\\team-build",
-      tokens: 110,
-    },
-    {
-      name: "team-qa",
-      category: "Quality Assurance",
-      triggers: ["team-qa", "qa check", "test plan"],
-      description: "Runs virtual QA team (cartographer, risk analyst, test architects) to prevent silent regressions.",
-      path: "C:\\Users\\tyson\\.gemini\\config\\plugins\\delivery-team-plugin\\skills\\team-qa",
-      tokens: 105,
-    },
-    {
-      name: "team-research",
-      category: "Deep Research & OSINT",
-      triggers: ["team-research", "deep research", "scout"],
-      description: "Structured research pipeline with Scout, Triage, Cross-Examiner, and Red Team Reviewer.",
-      path: "C:\\Users\\tyson\\.gemini\\config\\plugins\\research-team-plugin\\skills\\team-research",
-      tokens: 90,
-    },
-    {
-      name: "story-map-scaffold-generator",
-      category: "Testing & UAT",
-      triggers: ["story map", "uat scaffold", "happy path"],
-      description: "Generates populated UAT story maps, role-based workflow test scripts, and test scaffolds.",
-      path: "C:\\Users\\tyson\\.gemini\\config\\plugins\\story-map\\skills\\story-map-scaffold-generator",
-      tokens: 85,
-    },
-    {
-      name: "wrap-up",
-      category: "Git Lifecycle",
-      triggers: ["wrap up", "/wrap-up", "close out work"],
-      description: "Audits uncommitted changes, surfaces decisions, commits, pushes, and merges cleanly.",
-      path: "C:\\Users\\tyson\\.gemini\\config\\plugins\\dev-workflow\\skills\\wrap-up",
-      tokens: 75,
-    },
-    {
-      name: "time-ledger",
-      category: "Telemetry & Costs",
-      triggers: ["time-ledger", "hours report", "cost ledger"],
-      description: "Cross-project time, token, and cost ledger reconstructed from session transcripts.",
-      path: "C:\\Users\\tyson\\.gemini\\config\\plugins\\time-ledger\\skills\\time-ledger",
-      tokens: 70,
-    },
-  ];
+  useEffect(() => {
+    if (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window) {
+      import("@tauri-apps/api/core").then(({ invoke }) => {
+        invoke<Array<{ name: string; description: string; location: string; origin: string }>>("list_installed_skills")
+          .then((res) => {
+            if (res && res.length > 0) {
+              setSkills(
+                res.map((s) => ({
+                  name: s.name,
+                  category: s.origin === "built-in" ? "Built-in System" : s.origin === "user" ? "User Skill" : "Project Skill",
+                  triggers: [s.name, `/${s.name}`],
+                  description: s.description,
+                  path: s.location,
+                  tokens: Math.max(30, Math.round(s.description.length / 3)),
+                }))
+              );
+            }
+          })
+          .catch((err) => console.warn("Failed to load skills from backend:", err));
+      });
+    }
+  }, []);
 
   const filtered = skills.filter(
     (s) =>
       s.name.toLowerCase().includes(search.toLowerCase()) ||
       s.description.toLowerCase().includes(search.toLowerCase()) ||
-      s.category.toLowerCase().includes(search.toLowerCase())
+      (s.category && s.category.toLowerCase().includes(search.toLowerCase()))
   );
 
   return (

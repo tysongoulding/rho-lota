@@ -1,7 +1,9 @@
+pub mod discovery_cmd;
 pub mod engine_bridge;
 pub mod settings_cmd;
 pub mod workspace_cmd;
 
+use discovery_cmd::{get_configured_plugins_and_mcps, list_installed_skills, list_saved_sessions};
 use engine_bridge::{EngineState, ProviderTestResult, handle_rpc_command, test_provider_key_direct};
 use rho_harness_core::rpc::protocol::{RpcRequest, RpcResponse};
 use settings_cmd::{get_lota_config_path, load_lota_settings, save_lota_settings};
@@ -131,6 +133,9 @@ pub fn run() {
             load_lota_settings,
             save_lota_settings,
             get_lota_config_path,
+            list_installed_skills,
+            get_configured_plugins_and_mcps,
+            list_saved_sessions,
             start_drag_window,
             minimize_window,
             toggle_maximize_window,
