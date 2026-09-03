@@ -8,6 +8,7 @@ export interface ThemeColors {
   card: string;
   border: string;
   accent: string;
+  highlight: string;
 }
 
 export interface PresetTheme {
@@ -27,6 +28,7 @@ export const THEME_PRESETS: PresetTheme[] = [
       card: "#161b22",
       border: "#30363d",
       accent: "#1f6feb",
+      highlight: "#264f78",
     },
     light: {
       background: "#ffffff",
@@ -34,6 +36,7 @@ export const THEME_PRESETS: PresetTheme[] = [
       card: "#f6f8fa",
       border: "#d0d7de",
       accent: "#0969da",
+      highlight: "#b4d5fe",
     },
   },
   {
@@ -45,6 +48,7 @@ export const THEME_PRESETS: PresetTheme[] = [
       card: "#44475a",
       border: "#6272a4",
       accent: "#bd93f9",
+      highlight: "#ff79c6",
     },
     light: {
       background: "#f8f8f2",
@@ -52,6 +56,7 @@ export const THEME_PRESETS: PresetTheme[] = [
       card: "#e8e8e8",
       border: "#6272a4",
       accent: "#bd93f9",
+      highlight: "#ff79c6",
     },
   },
   {
@@ -63,6 +68,7 @@ export const THEME_PRESETS: PresetTheme[] = [
       card: "#3b4252",
       border: "#4c566a",
       accent: "#88c0d0",
+      highlight: "#81a1c1",
     },
     light: {
       background: "#eceff4",
@@ -70,6 +76,7 @@ export const THEME_PRESETS: PresetTheme[] = [
       card: "#e5e9f0",
       border: "#d8dee9",
       accent: "#5e81ac",
+      highlight: "#88c0d0",
     },
   },
   {
@@ -81,6 +88,7 @@ export const THEME_PRESETS: PresetTheme[] = [
       card: "#12151c",
       border: "#ff003c",
       accent: "#ffe600",
+      highlight: "#ff003c",
     },
     light: {
       background: "#f0f2f5",
@@ -88,6 +96,7 @@ export const THEME_PRESETS: PresetTheme[] = [
       card: "#ffffff",
       border: "#ff003c",
       accent: "#00f0ff",
+      highlight: "#ffe600",
     },
   },
 ];
@@ -101,7 +110,7 @@ interface ThemeState {
   setPreset: (presetId: string) => void;
   setColor: (target: "dark" | "light", key: keyof ThemeColors, value: string) => void;
   resetPreset: (presetId: string) => void;
-  initTheme: (data: Partial<{ mode: ThemeMode; preset: string; darkColors: ThemeColors; lightColors: ThemeColors }>) => void;
+  initTheme: (data: Partial<{ mode: ThemeMode; preset: string; darkColors: Partial<ThemeColors>; lightColors: Partial<ThemeColors> }>) => void;
 }
 
 const STORAGE_KEY = "rho-lota-theme";
@@ -125,8 +134,8 @@ const initial = loadInitialState() || {
 export const useThemeStore = create<ThemeState>((set, get) => ({
   mode: initial.mode,
   preset: initial.preset,
-  darkColors: initial.darkColors,
-  lightColors: initial.lightColors,
+  darkColors: { ...THEME_PRESETS[0].dark, ...initial.darkColors },
+  lightColors: { ...THEME_PRESETS[0].light, ...initial.lightColors },
 
   setMode: (mode: ThemeMode) => {
     set({ mode });
@@ -220,4 +229,5 @@ export function applyThemeToDocument() {
   root.style.setProperty("--text-main", colors.foreground);
   root.style.setProperty("--border-main", colors.border);
   root.style.setProperty("--color-accent", colors.accent);
+  root.style.setProperty("--color-highlight", colors.highlight || colors.accent);
 }

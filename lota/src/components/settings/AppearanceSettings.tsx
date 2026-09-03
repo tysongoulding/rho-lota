@@ -28,6 +28,7 @@ export function AppearanceSettings() {
     { key: "foreground", label: "Foreground / Text", desc: "Primary typography and text content" },
     { key: "border", label: "Border", desc: "Dividers, boundaries, and input borders" },
     { key: "accent", label: "Accent / Primary", desc: "Buttons, badges, and focus rings" },
+    { key: "highlight", label: "Highlight / Selection", desc: "Text selection highlight, active badges, and focus markers" },
   ];
 
   return (
@@ -115,6 +116,7 @@ export function AppearanceSettings() {
                   <div className="w-3.5 h-3.5 rounded-full border border-black/20 flex-shrink-0" style={{ backgroundColor: p.dark.background }} />
                   <div className="w-3.5 h-3.5 rounded-full border border-black/20 flex-shrink-0" style={{ backgroundColor: p.dark.card }} />
                   <div className="w-3.5 h-3.5 rounded-full border border-black/20 flex-shrink-0" style={{ backgroundColor: p.dark.accent }} />
+                  <div className="w-3.5 h-3.5 rounded-full border border-black/20 flex-shrink-0" style={{ backgroundColor: p.dark.highlight }} />
                   <div className="w-3.5 h-3.5 rounded-full border border-black/20 flex-shrink-0" style={{ backgroundColor: p.dark.foreground }} />
                 </div>
               </button>

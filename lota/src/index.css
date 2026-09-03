@@ -9,6 +9,12 @@
   --text-main: #cccccc;
   --border-main: #282828;
   --color-accent: #007acc;
+  --color-highlight: #264f78;
+}
+
+::selection {
+  background-color: var(--color-highlight) !important;
+  color: #ffffff !important;
 }
 
 html,
