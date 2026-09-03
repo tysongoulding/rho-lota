@@ -163,16 +163,9 @@ export function Titlebar() {
       {/* Center Draggable Spacer */}
       <div data-tauri-drag-region className="flex-1 h-full cursor-default" />
 
-      {/* Right Section: Status -> Usage -> Session -> Workbench Toggle -> Window Controls */}
+      {/* Right Section: Status -> Session -> Workbench Toggle -> Window Controls */}
       <div className="flex items-center space-x-2 h-full text-[#8b949e] z-10" data-tauri-drag-region>
         {renderStatusPill(turnPhase)}
-
-        {usage.contextPercent !== undefined && (
-          <div className="flex items-center space-x-1">
-            <Cpu className="w-3.5 h-3.5 text-[#58a6ff]" />
-            <span>{usage.contextPercent.toFixed(1)}%</span>
-          </div>
-        )}
 
         {sessionInfo.id && (
           <span className="font-mono text-[10px] bg-[#21262d] px-1.5 py-0.5 rounded border border-[#30363d] hidden sm:inline">

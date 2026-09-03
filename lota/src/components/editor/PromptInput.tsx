@@ -5,6 +5,8 @@ import { useSubagentStore } from "../../store/subagentStore";
 import { useRhoEngine } from "../../hooks/useRhoEngine";
 import { useTurnQueue } from "../../hooks/useTurnQueue";
 import { AutocompleteMenu } from "./AutocompleteMenu";
+import { ContextRingGauge } from "./ContextRingGauge";
+import { ContextWindowModal } from "../modals/ContextWindowModal";
 import { Send, Square, CornerDownLeft, FileCode, X } from "lucide-react";
 
 interface PromptInputProps {
@@ -15,6 +17,7 @@ export function PromptInput({ placeholder }: PromptInputProps = {}) {
   const [text, setText] = useState("");
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [autocompleteFilter, setAutocompleteFilter] = useState("");
+  const [showContextModal, setShowContextModal] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { isRunning, addUserMessage } = useSessionStore();
@@ -127,7 +130,9 @@ export function PromptInput({ placeholder }: PromptInputProps = {}) {
           className="flex-1 bg-transparent border-none resize-none outline-none text-xs md:text-sm text-white placeholder-[#484f58] max-h-36 py-1 px-1.5"
         />
 
-        <div className="flex items-center space-x-1 flex-shrink-0">
+        <div className="flex items-center space-x-1.5 flex-shrink-0">
+          <ContextRingGauge onClick={() => setShowContextModal(true)} />
+
           {isRunning ? (
             <button
               onClick={abort}
@@ -163,6 +168,11 @@ export function PromptInput({ placeholder }: PromptInputProps = {}) {
           <span>Queueing enabled when running</span>
         </div>
       </div>
+
+      {/* Context Window Diagnostics Modal */}
+      {showContextModal && (
+        <ContextWindowModal onClose={() => setShowContextModal(false)} />
+      )}
     </div>
   );
 }
