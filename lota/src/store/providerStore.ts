@@ -143,10 +143,13 @@ const loadInitialActive = (): { provider: string; model: string } => {
   return { provider: "gemini", model: "gemini-flash-latest" };
 };
 
-interface ProviderState {
+export type ThinkingLevel = "high" | "med" | "low" | "off";
+
+export interface ProviderState {
   providers: Record<string, ProviderConfig>;
   activeProviderId: string;
   activeModel: string;
+  thinkingLevel: ThinkingLevel;
   ollamaStatus: "online" | "offline" | "checking" | "unknown";
   preambles: PreamblePreset[];
   activePreambleId: string;
@@ -154,6 +157,7 @@ interface ProviderState {
   setApiKey: (id: string, key: string) => void;
   setEndpoint: (id: string, endpoint: string) => void;
   setActiveProviderAndModel: (providerId: string, model: string) => void;
+  setThinkingLevel: (level: ThinkingLevel) => void;
   syncKeysToBackend: () => Promise<void>;
   loadKeysFromSharedAuthFile: () => Promise<void>;
   testProviderKeyLive: (providerId: string, key: string) => Promise<{ success: boolean; message: string; latency?: number }>;
@@ -165,13 +169,32 @@ interface ProviderState {
 
 const initialActive = loadInitialActive();
 
+function loadInitialThinkingLevel(): ThinkingLevel {
+  if (typeof window === "undefined") return "high";
+  try {
+    const saved = localStorage.getItem("rho_lota_thinking_level");
+    if (saved === "high" || saved === "med" || saved === "low" || saved === "off") {
+      return saved;
+    }
+  } catch {}
+  return "high";
+}
+
 export const useProviderStore = create<ProviderState>((set, get) => ({
   providers: loadInitialProviders(),
   activeProviderId: initialActive.provider,
   activeModel: initialActive.model,
+  thinkingLevel: loadInitialThinkingLevel(),
   ollamaStatus: "unknown",
   preambles: DEFAULT_PREAMBLES,
   activePreambleId: "default-coder",
+
+  setThinkingLevel: (level: ThinkingLevel) => {
+    try {
+      localStorage.setItem("rho_lota_thinking_level", level);
+    } catch {}
+    set({ thinkingLevel: level });
+  },
 
   setApiKey: (id, key) => {
     const trimmed = key.trim();
