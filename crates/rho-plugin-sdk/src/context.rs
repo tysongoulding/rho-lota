@@ -28,6 +28,14 @@ impl SelectOption {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ToolInfo {
+    pub name: String,
+    pub description: String,
+    #[serde(default)]
+    pub parameters: Value,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SelectResult {
     Selected(usize),
@@ -99,6 +107,30 @@ impl HostContext {
             "level": level,
         });
         let _ = self.call_host("host/ui/notify", params).await;
+    }
+
+    pub async fn block(&self, title: &str, content: &str, style: &str) {
+        let params = json!({
+            "title": title,
+            "content": content,
+            "style": style,
+        });
+        let _ = self.call_host("host/ui/block", params).await;
+    }
+
+    pub async fn set_status(&self, key: &str, text: Option<&str>) {
+        let params = json!({
+            "key": key,
+            "text": text,
+        });
+        let _ = self.call_host("host/ui/set_status", params).await;
+    }
+
+    pub async fn get_all_tools(&self) -> Vec<ToolInfo> {
+        let res = self.call_host("host/tools/list", json!({})).await;
+        res.get("tools")
+            .and_then(|t| serde_json::from_value(t.clone()).ok())
+            .unwrap_or_default()
     }
 
     async fn call_host(&self, method: &str, params: Value) -> Value {
