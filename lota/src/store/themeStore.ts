@@ -201,6 +201,7 @@ function persist(state: ThemeState) {
         lightColors: state.lightColors,
       })
     );
+    import("../lib/settingsSync").then((m) => m.scheduleSaveSettingsToDisk()).catch(() => {});
   } catch {}
 }
 

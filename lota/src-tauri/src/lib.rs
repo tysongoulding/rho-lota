@@ -1,8 +1,10 @@
 pub mod engine_bridge;
+pub mod settings_cmd;
 pub mod workspace_cmd;
 
 use engine_bridge::{EngineState, ProviderTestResult, handle_rpc_command, test_provider_key_direct};
 use rho_harness_core::rpc::protocol::{RpcRequest, RpcResponse};
+use settings_cmd::{get_lota_config_path, load_lota_settings, save_lota_settings};
 use std::collections::HashMap;
 use tauri::Manager;
 use workspace_cmd::{execute_shell_command, list_workspace_entries, read_workspace_file, write_workspace_file};
@@ -126,6 +128,9 @@ pub fn run() {
             sync_provider_keys,
             get_saved_auth_keys,
             test_provider_key,
+            load_lota_settings,
+            save_lota_settings,
+            get_lota_config_path,
             start_drag_window,
             minimize_window,
             toggle_maximize_window,

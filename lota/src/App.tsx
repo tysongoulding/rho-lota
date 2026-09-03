@@ -39,8 +39,11 @@ export default function App() {
 
   const activeAgent = subagents.find((a) => a.id === activeChatAgentId);
 
-  // Load shared API keys from ~/.config/rho/auth.json on launch
+  // Load shared API keys from ~/.config/rho/auth.json and settings from ~/.config/lota/settings.json on launch
   useEffect(() => {
+    import("./lib/settingsSync").then(({ loadSettingsFromDisk }) => {
+      loadSettingsFromDisk();
+    });
     loadKeysFromSharedAuthFile().then(() => {
       syncKeysToBackend();
     });

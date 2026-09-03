@@ -311,6 +311,7 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
       );
     } catch {}
     set({ activeProviderId: providerId, activeModel: model });
+    import("../lib/settingsSync").then((m) => m.scheduleSaveSettingsToDisk()).catch(() => {});
   },
 
   checkOllama: async () => {
@@ -348,7 +349,7 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
     }
   },
 
-  savePreamble: (preset) =>
+  savePreamble: (preset) => {
     set((state) => {
       const exists = state.preambles.some((p) => p.id === preset.id);
       const updated = exists
@@ -358,9 +359,11 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
         localStorage.setItem(STORAGE_KEYS.PREAMBLES, JSON.stringify(updated));
       } catch {}
       return { preambles: updated };
-    }),
+    });
+    import("../lib/settingsSync").then((m) => m.scheduleSaveSettingsToDisk()).catch(() => {});
+  },
 
-  deletePreamble: (id) =>
+  deletePreamble: (id) => {
     set((state) => {
       const updated = state.preambles.filter((p) => p.id !== id);
       try {
@@ -371,7 +374,12 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
         activePreambleId:
           state.activePreambleId === id ? "default-coder" : state.activePreambleId,
       };
-    }),
+    });
+    import("../lib/settingsSync").then((m) => m.scheduleSaveSettingsToDisk()).catch(() => {});
+  },
 
-  setActivePreambleId: (id) => set({ activePreambleId: id }),
+  setActivePreambleId: (id) => {
+    set({ activePreambleId: id });
+    import("../lib/settingsSync").then((m) => m.scheduleSaveSettingsToDisk()).catch(() => {});
+  },
 }));
