@@ -32,17 +32,19 @@ export default function App() {
   const { messages, isRunning, addUserMessage } = useSessionStore();
   const { activeView, statusbarOpen } = useUiStore();
   const { subagents, activeChatAgentId } = useSubagentStore();
-  const { syncKeysToBackend } = useProviderStore();
+  const { syncKeysToBackend, loadKeysFromSharedAuthFile } = useProviderStore();
   const { mode } = useThemeStore();
   const { prompt } = useRhoEngine();
   const { queue, dequeue } = useTurnQueue();
 
   const activeAgent = subagents.find((a) => a.id === activeChatAgentId);
 
-  // Sync API keys to Rust engine backend on launch
+  // Load shared API keys from ~/.config/rho/auth.json on launch
   useEffect(() => {
-    syncKeysToBackend();
-  }, [syncKeysToBackend]);
+    loadKeysFromSharedAuthFile().then(() => {
+      syncKeysToBackend();
+    });
+  }, [loadKeysFromSharedAuthFile, syncKeysToBackend]);
 
   // Register global keyboard shortcuts & drag-and-drop file attachment
   useGlobalShortcuts();

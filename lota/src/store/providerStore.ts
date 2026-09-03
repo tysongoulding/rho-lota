@@ -155,6 +155,7 @@ interface ProviderState {
   setEndpoint: (id: string, endpoint: string) => void;
   setActiveProviderAndModel: (providerId: string, model: string) => void;
   syncKeysToBackend: () => Promise<void>;
+  loadKeysFromSharedAuthFile: () => Promise<void>;
   testProviderKeyLive: (providerId: string, key: string) => Promise<{ success: boolean; message: string; latency?: number }>;
   checkOllama: () => Promise<void>;
   savePreamble: (preset: PreamblePreset) => void;
@@ -210,6 +211,35 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
         await invoke("sync_provider_keys", { keys: keysMap });
       } catch (err) {
         console.warn("Failed to sync API keys with backend:", err);
+      }
+    }
+  },
+
+  loadKeysFromSharedAuthFile: async () => {
+    if (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window) {
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        const sharedKeys = await invoke<Record<string, string>>("get_saved_auth_keys");
+        if (sharedKeys && Object.keys(sharedKeys).length > 0) {
+          set((state) => {
+            const updated = { ...state.providers };
+            for (const [id, key] of Object.entries(sharedKeys)) {
+              if (updated[id] && key && key.trim()) {
+                updated[id] = {
+                  ...updated[id],
+                  apiKey: key.trim(),
+                  isConfigured: true,
+                };
+              }
+            }
+            try {
+              localStorage.setItem(STORAGE_KEYS.PROVIDERS, JSON.stringify(updated));
+            } catch {}
+            return { providers: updated };
+          });
+        }
+      } catch (err) {
+        console.warn("Failed to load shared auth keys:", err);
       }
     }
   },

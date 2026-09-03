@@ -19,12 +19,45 @@ async fn send_rpc_command(
 #[tauri::command]
 async fn sync_provider_keys(keys: HashMap<String, String>, state: tauri::State<'_, EngineState>) -> Result<(), String> {
     let mut api_keys = state.api_keys.lock().await;
+    let config_dir = rho_harness_core::config::default_config_dir();
+    let _ = std::fs::create_dir_all(&config_dir);
+    let auth_file = config_dir.join("auth.json");
+    let mut auth_store = rho_engine::auth::AuthStore::load(&auth_file).unwrap_or_default();
+
     for (k, v) in keys {
         if !v.trim().is_empty() {
-            api_keys.insert(k, v);
+            api_keys.insert(k.clone(), v.clone());
+            let _ = auth_store.set_key(&k, &v);
         }
     }
     Ok(())
+}
+
+#[tauri::command]
+async fn get_saved_auth_keys() -> Result<HashMap<String, String>, String> {
+    let config_dir = rho_harness_core::config::default_config_dir();
+    let auth_file = config_dir.join("auth.json");
+    let auth_store = rho_engine::auth::AuthStore::load(&auth_file).unwrap_or_default();
+    let mut result = HashMap::new();
+
+    for provider in [
+        "gemini",
+        "anthropic",
+        "openai",
+        "deepseek",
+        "groq",
+        "openrouter",
+        "xai",
+        "mistral",
+        "cohere",
+    ] {
+        if let Ok(Some(key)) = auth_store.get_key_sync(provider) {
+            if !key.trim().is_empty() {
+                result.insert(provider.to_string(), key);
+            }
+        }
+    }
+    Ok(result)
 }
 
 #[tauri::command]
@@ -99,6 +132,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             send_rpc_command,
             sync_provider_keys,
+            get_saved_auth_keys,
             test_provider_key,
             start_drag_window,
             minimize_window,
