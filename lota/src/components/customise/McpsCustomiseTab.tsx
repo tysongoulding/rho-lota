@@ -92,6 +92,37 @@ const DEFAULT_MCP_SERVERS: McpItem[] = [
       "createEvent",
     ],
   },
+  {
+    id: "microsoft-365",
+    name: "Microsoft 365 & Outlook MCP",
+    status: "Ready to Connect",
+    toolCount: 18,
+    tokens: 340,
+    description: "Microsoft Outlook Email, Calendar events, OneDrive files, and Teams messaging integration.",
+    tools: [
+      "outlook_list_messages",
+      "outlook_send_mail",
+      "outlook_get_calendar_events",
+      "outlook_create_event",
+      "teams_list_channels",
+      "teams_post_message",
+    ],
+  },
+  {
+    id: "slack",
+    name: "Slack MCP",
+    status: "Ready to Connect",
+    toolCount: 12,
+    tokens: 280,
+    description: "Slack channels, team direct messages, thread replies, and notification alerts.",
+    tools: [
+      "slack_list_channels",
+      "slack_post_message",
+      "slack_reply_to_thread",
+      "slack_get_channel_history",
+      "slack_search_messages",
+    ],
+  },
 ];
 
 export function McpsCustomiseTab() {
