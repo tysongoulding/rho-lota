@@ -161,14 +161,16 @@ async fn fetch_real_llm_response(provider: &str, model: &str, prompt: &str, api_
 
     match provider.to_lowercase().as_str() {
         "gemini" => {
-            let clean_model = if model.is_empty() {
-                "gemini-2.0-flash"
+            let model_path = if model.starts_with("models/") {
+                model.to_string()
+            } else if model.is_empty() {
+                "models/gemini-flash-latest".to_string()
             } else {
-                model.trim()
+                format!("models/{}", model.trim())
             };
             let url = format!(
-                "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
-                clean_model, clean_key
+                "https://generativelanguage.googleapis.com/v1beta/{}:generateContent?key={}",
+                model_path, clean_key
             );
 
             let payload = json!({
