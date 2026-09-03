@@ -4,14 +4,27 @@ import { useSessionStore } from "../../store/sessionStore";
 import { useUiStore } from "../../store/uiStore";
 import { useToastStore } from "../../store/toastStore";
 import {
-  Sparkles,
-  ChevronDown,
+  ChevronUp,
   Check,
-  Cpu,
   KeyRound,
-  ExternalLink,
   ShieldAlert,
 } from "lucide-react";
+
+export function formatModelDisplayName(model: string): string {
+  if (!model) return "Gemini 3.7 Flash High";
+  const clean = model.toLowerCase();
+  if (clean.includes("gemini-flash") || clean.includes("gemini-3.7-flash")) return "Gemini 3.7 Flash High";
+  if (clean.includes("gemini-pro") || clean.includes("gemini-1.5-pro")) return "Gemini 1.5 Pro";
+  if (clean.includes("claude-3-7-sonnet")) return "Claude 3.7 Sonnet";
+  if (clean.includes("claude-3-5-sonnet")) return "Claude 3.5 Sonnet";
+  if (clean.includes("claude-3-5-haiku")) return "Claude 3.5 Haiku";
+  if (clean.includes("gpt-4o-mini")) return "GPT-4o Mini";
+  if (clean.includes("gpt-4o")) return "GPT-4o";
+  if (clean.includes("o1")) return "OpenAI o1";
+  if (clean.includes("deepseek")) return "DeepSeek Coder";
+  if (clean.includes("llama")) return "Llama 3.3 70B";
+  return model;
+}
 
 export function ModelDropupPicker() {
   const [isOpen, setIsOpen] = useState(false);
@@ -39,12 +52,10 @@ export function ModelDropupPicker() {
     );
   }, [providers]);
 
-  const activeProvider = providers[activeProviderId] || configuredProviders[0];
-
   const handleSelectModel = (providerId: string, model: string) => {
     setActiveProviderAndModel(providerId, model);
     setSessionModel(providerId, model);
-    addToast(`Switched active model to ${model}`, "info");
+    addToast(`Switched active model to ${formatModelDisplayName(model)}`, "info");
     setIsOpen(false);
   };
 
@@ -56,22 +67,17 @@ export function ModelDropupPicker() {
 
   return (
     <div className="relative inline-flex items-center" ref={menuRef}>
-      {/* Model Trigger Button */}
+      {/* Clean Minimalist Trigger */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-lg border text-xs font-mono transition ${
-          isOpen
-            ? "bg-[#21262d] text-white border-blue-500/50 shadow-sm"
-            : "text-[#c9d1d9] hover:text-white bg-[#161b22] hover:bg-[#21262d] border-[#30363d]"
-        }`}
+        className="flex items-center space-x-1 py-1 px-1 rounded-md text-xs text-[#8b949e] hover:text-white hover:bg-[#21262d] transition cursor-pointer select-none group"
         title={`Active Model: ${activeModel}. Click to switch configured providers.`}
       >
-        <Sparkles className="w-3 h-3 text-[#58a6ff]" />
-        <span className="truncate max-w-[130px] font-sans text-[11px] font-medium">
-          {activeModel || "gemini-flash-latest"}
+        <span className="font-medium text-xs text-[#c9d1d9] group-hover:text-white transition">
+          {formatModelDisplayName(activeModel || "gemini-flash-latest")}
         </span>
-        <ChevronDown className={`w-3 h-3 text-[#8b949e] transition-transform duration-200 ${isOpen ? "rotate-180 text-white" : ""}`} />
+        <ChevronUp className={`w-3.5 h-3.5 text-[#8b949e] group-hover:text-white transition-transform ${isOpen ? "rotate-180" : ""}`} />
       </button>
 
       {/* Dynamic Dropup Menu */}

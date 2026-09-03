@@ -106,11 +106,7 @@ export function AddContextDropup({ onInsertMention, onOpenBrowserTool }: AddCont
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`p-1.5 rounded-lg border transition flex items-center justify-center ${
-          isOpen
-            ? "bg-[#21262d] text-white border-blue-500/50 shadow-sm"
-            : "text-[#8b949e] hover:text-white bg-[#161b22] hover:bg-[#21262d] border-[#30363d]"
-        }`}
+        className="p-1 rounded-md text-[#8b949e] hover:text-white hover:bg-[#21262d] transition flex items-center justify-center cursor-pointer"
         title="Add context (Media, Mentions, Actions, Browser)"
       >
         <Plus className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? "rotate-45 text-[#58a6ff]" : ""}`} />
