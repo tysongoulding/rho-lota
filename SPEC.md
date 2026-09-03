@@ -13,6 +13,35 @@ This specification serves as the living checklist for features, requirements, an
 
 ---
 
+## 🏛️ Architecture & Dependency Boundary
+
+```text
+┌───────────────────────────────────────────────────────────────┐
+│                      Desktop UI (lota)                        │
+│             Tauri 2.0 + React 19 + TypeScript                 │
+│         (Requires rho-harness-core and rho-engine)            │
+└──────────────────────────────┬────────────────────────────────┘
+                               │ consumes
+                               ▼
+┌───────────────────────────────────────────────────────────────┐
+│                     rho Engine & Core                         │
+│        crates/rho-engine  &  crates/rho-harness-core          │
+│                (Rig 0.42 Agentic Coding Core)                 │
+└──────────────────────────────┬────────────────────────────────┘
+                               ▲
+                               │ powers
+┌──────────────────────────────┴────────────────────────────────┐
+│                   Standalone CLI (rho)                        │
+│           100% Independent Single Binary (No GUI)             │
+│            Runs headless, in terminal, or in CI/CD            │
+└───────────────────────────────────────────────────────────────┘
+```
+
+- **`rho` (CLI)** is completely standalone. It compiles to a lightweight single binary with zero GUI, Webview, or Tauri dependencies.
+- **`lota` (Desktop UI)** is a companion layer that directly consumes `rho`'s core engine, reading shared credentials from `~/.config/rho/auth.json` and storing desktop preferences in `~/.config/rho/lota/`.
+
+---
+
 ## ✅ Completed Milestones
 
 ### Phase 1: Core Desktop Interface (`lota`)
