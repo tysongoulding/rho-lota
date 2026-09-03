@@ -46,7 +46,7 @@ const DEFAULT_PROVIDERS: Record<string, ProviderConfig> = {
     type: "api_key",
     defaultModel: "claude-3-7-sonnet-20250219",
     models: ["claude-3-7-sonnet-20250219", "claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022"],
-    isConfigured: true,
+    isConfigured: false,
   },
   openai: {
     id: "openai",
@@ -107,6 +107,33 @@ const DEFAULT_PROVIDERS: Record<string, ProviderConfig> = {
   },
 };
 
+const STORAGE_KEYS = {
+  PROVIDERS: "rho_lota_providers_vault_v1",
+  PREAMBLES: "rho_lota_preambles_v1",
+};
+
+const loadInitialProviders = (): Record<string, ProviderConfig> => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.PROVIDERS);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return { ...DEFAULT_PROVIDERS, ...parsed };
+    }
+  } catch {}
+  return DEFAULT_PROVIDERS;
+};
+
+const loadInitialPreambles = (): PreamblePreset[] => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.PREAMBLES);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch {}
+  return DEFAULT_PREAMBLES;
+};
+
 interface ProviderState {
   providers: Record<string, ProviderConfig>;
   ollamaStatus: "online" | "offline" | "checking" | "unknown";
@@ -122,40 +149,44 @@ interface ProviderState {
 }
 
 export const useProviderStore = create<ProviderState>((set, get) => ({
-  providers: DEFAULT_PROVIDERS,
+  providers: loadInitialProviders(),
   ollamaStatus: "unknown",
-  preambles: DEFAULT_PREAMBLES,
+  preambles: loadInitialPreambles(),
   activePreambleId: "default-coder",
 
   setApiKey: (id, key) =>
     set((state) => {
       const current = state.providers[id];
       if (!current) return state;
-      return {
-        providers: {
-          ...state.providers,
-          [id]: {
-            ...current,
-            apiKey: key,
-            isConfigured: key.trim().length > 0,
-          },
+      const updated = {
+        ...state.providers,
+        [id]: {
+          ...current,
+          apiKey: key,
+          isConfigured: key.trim().length > 0,
         },
       };
+      try {
+        localStorage.setItem(STORAGE_KEYS.PROVIDERS, JSON.stringify(updated));
+      } catch {}
+      return { providers: updated };
     }),
 
   setEndpoint: (id, endpoint) =>
     set((state) => {
       const current = state.providers[id];
       if (!current) return state;
-      return {
-        providers: {
-          ...state.providers,
-          [id]: {
-            ...current,
-            endpoint,
-          },
+      const updated = {
+        ...state.providers,
+        [id]: {
+          ...current,
+          endpoint,
         },
       };
+      try {
+        localStorage.setItem(STORAGE_KEYS.PROVIDERS, JSON.stringify(updated));
+      } catch {}
+      return { providers: updated };
     }),
 
   checkOllama: async () => {
@@ -168,17 +199,23 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
         const models = Array.isArray(data.models)
           ? data.models.map((m: { name: string }) => m.name)
           : get().providers.ollama.models;
-        set((state) => ({
-          ollamaStatus: "online",
-          providers: {
+        set((state) => {
+          const updated = {
             ...state.providers,
             ollama: {
               ...state.providers.ollama,
               models: models.length > 0 ? models : state.providers.ollama.models,
               isConfigured: true,
             },
-          },
-        }));
+          };
+          try {
+            localStorage.setItem(STORAGE_KEYS.PROVIDERS, JSON.stringify(updated));
+          } catch {}
+          return {
+            ollamaStatus: "online",
+            providers: updated,
+          };
+        });
       } else {
         set({ ollamaStatus: "offline" });
       }
@@ -190,19 +227,27 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
   savePreamble: (preset) =>
     set((state) => {
       const exists = state.preambles.some((p) => p.id === preset.id);
-      return {
-        preambles: exists
-          ? state.preambles.map((p) => (p.id === preset.id ? preset : p))
-          : [...state.preambles, preset],
-      };
+      const updated = exists
+        ? state.preambles.map((p) => (p.id === preset.id ? preset : p))
+        : [...state.preambles, preset];
+      try {
+        localStorage.setItem(STORAGE_KEYS.PREAMBLES, JSON.stringify(updated));
+      } catch {}
+      return { preambles: updated };
     }),
 
   deletePreamble: (id) =>
-    set((state) => ({
-      preambles: state.preambles.filter((p) => p.id !== id),
-      activePreambleId:
-        state.activePreambleId === id ? "default-coder" : state.activePreambleId,
-    })),
+    set((state) => {
+      const updated = state.preambles.filter((p) => p.id !== id);
+      try {
+        localStorage.setItem(STORAGE_KEYS.PREAMBLES, JSON.stringify(updated));
+      } catch {}
+      return {
+        preambles: updated,
+        activePreambleId:
+          state.activePreambleId === id ? "default-coder" : state.activePreambleId,
+      };
+    }),
 
   setActivePreambleId: (id) => set({ activePreambleId: id }),
 }));

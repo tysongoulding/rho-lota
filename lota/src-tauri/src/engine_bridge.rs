@@ -1,5 +1,6 @@
 use rho_harness_core::rpc::protocol::{RpcCommand, RpcEvent, RpcRequest, RpcResponse};
 use serde_json::json;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
@@ -11,12 +12,30 @@ pub struct EngineState {
     pub session_id: Arc<Mutex<String>>,
     pub active_model: Arc<Mutex<String>>,
     pub active_provider: Arc<Mutex<String>>,
+    pub api_keys: Arc<Mutex<HashMap<String, String>>>,
     pub is_running: Arc<AtomicBool>,
     pub abort_flag: Arc<AtomicBool>,
 }
 
 impl Default for EngineState {
     fn default() -> Self {
+        let mut initial_keys = HashMap::new();
+        if let Ok(key) = std::env::var("ANTHROPIC_API_KEY") {
+            initial_keys.insert("anthropic".to_string(), key);
+        }
+        if let Ok(key) = std::env::var("OPENAI_API_KEY") {
+            initial_keys.insert("openai".to_string(), key);
+        }
+        if let Ok(key) = std::env::var("GEMINI_API_KEY") {
+            initial_keys.insert("gemini".to_string(), key);
+        }
+        if let Ok(key) = std::env::var("DEEPSEEK_API_KEY") {
+            initial_keys.insert("deepseek".to_string(), key);
+        }
+        if let Ok(key) = std::env::var("GROQ_API_KEY") {
+            initial_keys.insert("groq".to_string(), key);
+        }
+
         Self {
             session_id: Arc::new(Mutex::new(format!(
                 "sess_{}",
@@ -27,6 +46,7 @@ impl Default for EngineState {
             ))),
             active_model: Arc::new(Mutex::new("claude-3-7-sonnet".to_string())),
             active_provider: Arc::new(Mutex::new("anthropic".to_string())),
+            api_keys: Arc::new(Mutex::new(initial_keys)),
             is_running: Arc::new(AtomicBool::new(false)),
             abort_flag: Arc::new(AtomicBool::new(false)),
         }
@@ -45,6 +65,8 @@ pub async fn handle_rpc_command(
             let session_id = state.session_id.lock().await.clone();
             let model = state.active_model.lock().await.clone();
             let provider = state.active_provider.lock().await.clone();
+            let keys = state.api_keys.lock().await.clone();
+            let has_key = keys.contains_key(&provider) && !keys.get(&provider).unwrap().is_empty();
 
             state.is_running.store(true, Ordering::SeqCst);
             state.abort_flag.store(false, Ordering::SeqCst);
@@ -76,7 +98,7 @@ pub async fn handle_rpc_command(
 
                 // 3. Simulated/Streamed Reasoning Chunks
                 let reasoning_steps = [
-                    "Analyzing query context and workspace environment...\n",
+                    "Analyzing query context and active workspace dependencies...\n",
                     "Validating AST token constraints and TDD test requirements...\n",
                     "Formulating solution with zero placeholders and compiling clean code...\n",
                 ];
@@ -95,9 +117,15 @@ pub async fn handle_rpc_command(
                 }
 
                 // 4. Stream Response Text in chunks
+                let key_status = if has_key {
+                    "Authenticated via Settings Key"
+                } else {
+                    "Running with Default/Local Engine"
+                };
+
                 let response_text = format!(
-                    "Understood. Executed directive for: **`{}`**\n\n- Model backend: `{}` (`{}`)\n- Engine status: **Tokio FSM Online**\n- Workspace state: Clean\n",
-                    message, model, provider
+                    "Understood. Executed directive for: **`{}`**\n\n- Model backend: `{}` (`{}`)\n- Provider Auth: **{}**\n- Engine status: **Tokio FSM Online**\n- Workspace state: Clean\n",
+                    message, model, provider, key_status
                 );
 
                 let words: Vec<&str> = response_text.split_inclusive(' ').collect();
@@ -173,10 +201,17 @@ pub async fn handle_rpc_command(
                     content: format!("\n\n> *Steered direction: {}*\n\n", message),
                 },
             );
-            Ok(RpcResponse::success(req_id, "steer", Some(json!({ "steered": true }))))
+            Ok(RpcResponse::success(
+                req_id,
+                "steer",
+                Some(json!({ "steered": true })),
+            ))
         }
 
-        RpcCommand::ToolResponse { approval_id, decision } => {
+        RpcCommand::ToolResponse {
+            approval_id,
+            decision,
+        } => {
             let _ = app_handle.emit(
                 "rho://event",
                 RpcEvent::ToolCallResult {
