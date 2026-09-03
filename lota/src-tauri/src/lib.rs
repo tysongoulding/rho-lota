@@ -112,7 +112,9 @@ fn open_external_url(url: String) {
 
     #[cfg(target_os = "windows")]
     {
-        let _ = std::process::Command::new("explorer.exe").arg(trimmed).spawn();
+        let _ = std::process::Command::new("explorer.exe")
+            .arg(trimmed)
+            .spawn();
     }
     #[cfg(target_os = "macos")]
     {
