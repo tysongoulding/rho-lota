@@ -32,9 +32,14 @@
   calling `tiktoken_rs::cl100k_base()` repeatedly.
 - In `build.rs` scripts, always provide absolute or workspace-anchored paths for
   `cargo:rerun-if-changed` to prevent Cargo from invalidating incremental build
-  caches on every invocation.
+## Frontend (`lota/`) guidelines
+
+- All frontend UI code strictly lives under `lota/`.
+- Maintain single-responsibility modular components (~150 lines target).
+- Never modify core Rust crates when implementing frontend features; document backend requirements in `lota/backend-requests.md`.
+- Validate desktop frontend changes with Playwright E2E tests (`npm run test:e2e` inside `lota/`).
 
 ## Completion
 
-- Run `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, and
-  `cargo test --all-targets` before finishing.
+- For Rust crates: Run `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, and `cargo test --all-targets`.
+- For Lota desktop frontend: Run `npm run test:e2e` in `lota/`.

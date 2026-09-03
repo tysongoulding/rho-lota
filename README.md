@@ -195,16 +195,23 @@ Full hook protocol, Host UI services, and language examples are documented in
 
 ---
 
+## Desktop Application (`lota`)
+
+`rho` includes an official native desktop application frontend located in [`lota/`](lota/README.md), built on **Tauri 2.0**, **React 19**, **TypeScript**, and **Tailwind CSS**.
+
+- **Prompt Composer**: Auto-expanding minimal composer with `@` mention autocomplete, `/` workflow actions, file/media drag-and-drop, and dynamic model/thinking budget selection.
+- **Context Capacity & Compaction**: Live token telemetry and 100% full-capacity proportional memory diagnostics with on-demand compaction.
+- **Morning Briefing Hub**: Aggregates Google/Microsoft Calendars, Gmail/Outlook inboxes, and Slack/Teams mentions into daily agenda synthesis.
+- **Subagent Threads & Customisation Hub**: Dedicated isolated conversations for autonomous subagents and full management of Skills, MCP servers, and Rules.
+
+---
+
 ## Architecture
 
-The workspace is structured into four clean, focused crates:
+The workspace is structured into clean, focused crates and frontends:
 
-- **`rho-harness-core`**: Core domain logic, session DAG storage, configuration,
-  token estimation, and presentation types.
-- **`rho-engine`**: Native `rig.rs` agent runtime, provider factory, built-in
-  tools (`read`, `write`, `edit`, `bash`, `search`, `fetch`), and standard MCP
-  client.
-- **`rho-plugin-sdk`**: Lightweight SDK for building Rig-native plugins and
-  lifecycle hooks.
-- **`rho`**: Binary CLI entrypoint, interactive TUI editor, slash commands, and
-  terminal rendering engine.
+- **`rho-harness-core`**: Core domain logic, session DAG storage, configuration, token estimation, and presentation types.
+- **`rho-engine`**: Native `rig.rs` agent runtime, provider factory, built-in tools (`read`, `write`, `edit`, `bash`, `search`, `fetch`), and standard MCP client.
+- **`rho-plugin-sdk`**: Lightweight SDK for building Rig-native plugins and lifecycle hooks.
+- **`rho`**: Binary CLI entrypoint, interactive TUI editor, slash commands, and terminal rendering engine.
+- **`lota`**: Tauri 2.0 native desktop GUI application with real-time streaming, diff inspections, and workspace management.

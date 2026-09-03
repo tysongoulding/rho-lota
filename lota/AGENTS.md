@@ -25,7 +25,7 @@
 │  [Prompt / Steer / Abort]        [Render Feed / Diffs]   │
 │            │                               ▲             │
 │   invoke("send_rpc_command")       listen("rho://event") │
-└────────────┼───────────────────────────────┼─────────────┘
+│ └────────────┼───────────────────────────────┼─────────────┘
              ▼                               │
 ┌──────────────────────────────────────────────────────────┐
 │               Tauri 2.0 Backend (src-tauri)              │
@@ -55,48 +55,27 @@
 
 ---
 
-## 2. Tech Stack & Library Discipline
+## 2. UI/UX Rules & Invariants
 
-| Responsibility | Tool / Library | Golden Rule |
-|---|---|---|
-| **Rust ↔ TS Types** | `protocol.ts` / `tauri-specta` | Keep synchronized with `crates/rho-harness-core/src/rpc/protocol.rs`. |
-| **Streaming State** | `Zustand` (`src/store/`) | Use Zustand with shallow selectors for token chunks, messages, and approvals. |
-| **Static Metadata** | `TanStack Query` | Use **only** for reading saved sessions, config files, and model lists from disk. **Never** use for active streaming turns. |
-| **Workspace State** | `Zustand` UI slices | Tab/panel switching (sidebar, active session, settings) lives in client state. Avoid URL routing. |
-| **List Performance** | `@tanstack/react-virtual` | Long conversation logs and tool call histories **must** be virtualized. |
-| **Syntax Highlighting** | `shiki` | Highlight code blocks and tool file outputs. |
-| **Diffs** | `@git-diff-view/react` | Render unified and split diffs for `edit` tool events. |
-| **Styling** | `Tailwind CSS` + `clsx` + `tailwind-merge` | Use CSS variables and dark-theme tokens (`#0d1117`, `#161b22`, `#30363d`). |
-| **Icons** | `lucide-react` | Standard desktop icon set. |
+### Prompt Composer & Controls
+- **Floating Pill Container**: Auto-expanding textarea that grows smoothly upward on multi-line text (`min-h-[32px]` up to `180px` max).
+- **Add Context Dropup `[+]`**: Fast access to Media uploads, `@` Mentions, `/` Actions, and Browser web fetch tools.
+- **Dynamic Model Dropup**: Filters strictly to providers with active API keys or local services; provides single-row thinking budget controls (`Off`, `Low`, `Med`, `High`).
+- **Thinking Capability Guard**: Models without extended thinking (e.g. `GPT-4o`, `Claude 3.5 Sonnet`) display as `Standard Model` and omit reasoning budget payloads.
+- **Context Ring Gauge**: Circular SVG gauge left of the prompt button showing real token consumption and 1-click modal diagnostics.
 
----
+### Subagent vs. Chat Separation
+- **Independent Threads**: Subagents maintain their own isolated conversation history in `subagentStore.agentMessages`. Clicking an agent switches threads directly without polluting the general Chats list.
+- **Single-Highlight Invariant**: In `Sidebar.tsx`, only one item may be highlighted at any given time (an Agent, a Chat, or a View).
 
-## 3. Core Component Patterns
-
-### Prompt Input Bar
-- Use an **uncontrolled `textarea`** with a custom keyboard event handler.
-- `Enter`: Submit message (or queue if turn is active).
-- `Shift+Enter` / `Ctrl+J`: Insert newline without submitting.
-- `Escape`: Clear input draft or trigger abort when running.
-- Support `@skill` and `/command` auto-complete popovers.
-
-### Tool Approval Flow
-When receiving `RpcEvent::ToolApprovalRequest`:
-1. Render an interactive approval banner in the message stream.
-2. Provide explicit **Approve** (`allow`) and **Reject** (`deny`) actions.
-3. Call `rhoClient.respondToTool(approval_id, decision)` to release the Rust engine lock.
-
-### Streaming Markdown Safety
-- Always handle incomplete markdown tokens gracefully (unclosed code fences, partial KaTeX delimiters).
-- Stream text chunks into buffer state without re-parsing entire conversation history.
+### Context Memory Diagnostics
+- **100% Full-Capacity Scale**: The memory bar in `ContextWindowModal.tsx` must represent the full context capacity ceiling from `modelLimits.ts`, showing System, Tools, Turn History, Compacted Memory Reclaimed, and Headroom.
 
 ---
 
-## 4. Engineering Standards
+## 3. Engineering Standards
 
-- **File Conciseness**: Target ~150 lines per file. Split components along natural boundaries (e.g. `MessageItem`, `ToolCallBlock`, `ThinkingBlock`, `PromptInput`).
-- **No Blind Dependencies**: Do not introduce heavy UI frameworks or external CSS-in-JS dependencies.
-- **Type Rigor**: Maintain strict TypeScript typing (`noImplicitAny`, strict null checks).
-- **Validation**:
-  - Run `npm run build` (TypeScript check & Vite build) before completing frontend work.
-  - Run `cargo check --workspace` to ensure Rust backend and Tauri bindings remain green.
+- **File Conciseness**: Target ~150 lines per file. Split components along natural boundaries.
+- **Strict Red-First Verification**: Run `npm run test:e2e` Playwright suite after modifying any UI layout or store flow.
+- **Type Rigor**: Strict TypeScript typing (`noImplicitAny`, strict null checks).
+- **Zero Mock Fallbacks in Diagnostics**: Always wire live model capacity dictionaries and active store state rather than static mock percentages.
