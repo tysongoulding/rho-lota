@@ -28,12 +28,14 @@ interface ArtifactPreviewModalProps {
   artifact: ArtifactItem | null;
   initialMode?: "preview" | "code" | "split";
   onClose: () => void;
+  onOpenRevise?: () => void;
 }
 
 export function ArtifactPreviewModal({
   artifact,
   initialMode = "preview",
   onClose,
+  onOpenRevise,
 }: ArtifactPreviewModalProps) {
   const { updateArtifact } = useArtifactStore();
   const { addToast } = useToastStore();
@@ -267,6 +269,18 @@ export function ArtifactPreviewModal({
                 <span>Split View</span>
               </button>
             </div>
+
+            {/* AI Revise Button */}
+            {onOpenRevise && (
+              <button
+                onClick={onOpenRevise}
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs shadow-sm transition"
+                title="Open AI Revision assistant with version control and git diffs"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-purple-200" />
+                <span>Revise</span>
+              </button>
+            )}
 
             {/* Save Button */}
             <button

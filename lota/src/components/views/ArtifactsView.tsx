@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ArtifactItem, useArtifactStore } from "../../store/artifactStore";
 import { ArtifactPreviewModal } from "../artifacts/ArtifactPreviewModal";
+import { ArtifactReviseModal } from "../artifacts/ArtifactReviseModal";
 import {
   Layers,
   Search,
@@ -27,6 +28,7 @@ export function ArtifactsView() {
   const [selectedExt, setSelectedExt] = useState<string>("all");
   const [modalArtifact, setModalArtifact] = useState<ArtifactItem | null>(null);
   const [modalMode, setModalMode] = useState<"preview" | "code" | "split">("preview");
+  const [reviseArtifact, setReviseArtifact] = useState<ArtifactItem | null>(null);
 
   const filterCategories = [
     { id: "all", label: "All Deliverables" },
@@ -202,6 +204,8 @@ export function ArtifactsView() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map((art) => {
               const lineCount = art.content.split("\n").length;
+              const verCount = art.versions?.length || 1;
+
               return (
                 <div
                   key={art.id}
@@ -228,6 +232,8 @@ export function ArtifactsView() {
                             </span>
                             <span>•</span>
                             <span className="font-mono">{lineCount} lines</span>
+                            <span>•</span>
+                            <span className="font-mono text-purple-400">v{verCount}</span>
                           </div>
                         </div>
                       </div>
@@ -254,12 +260,12 @@ export function ArtifactsView() {
 
                   {/* Card Footer Actions */}
                   <div className="flex items-center justify-between pt-2 border-t border-[#30363d]/50">
-                    <div className="flex items-center space-x-1.5">
+                    <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
                       {/* Live View Button */}
                       <button
                         onClick={() => handleOpenModal(art, "preview")}
-                        className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-[#21262d] hover:bg-[#30363d] text-white font-medium text-[11px] border border-[#30363d] transition"
-                        title="Open interactive 80% screen preview"
+                        className="flex items-center space-x-1 px-2 py-1 rounded-lg bg-[#21262d] hover:bg-[#30363d] text-white font-medium text-[11px] border border-[#30363d] transition"
+                        title="Open interactive preview"
                       >
                         <Eye className="w-3.5 h-3.5 text-cyan-400" />
                         <span>View</span>
@@ -268,21 +274,21 @@ export function ArtifactsView() {
                       {/* Code Editor Button */}
                       <button
                         onClick={() => handleOpenModal(art, "code")}
-                        className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] hover:text-white font-medium text-[11px] border border-[#30363d] transition"
+                        className="flex items-center space-x-1 px-2 py-1 rounded-lg bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] hover:text-white font-medium text-[11px] border border-[#30363d] transition"
                         title="View code and edit"
                       >
                         <Code2 className="w-3.5 h-3.5 text-purple-400" />
                         <span>Edit</span>
                       </button>
 
-                      {/* Split View Button */}
+                      {/* AI Revise Button with Version Control */}
                       <button
-                        onClick={() => handleOpenModal(art, "split")}
-                        className="hidden sm:flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-[#21262d] hover:bg-[#30363d] text-[#8b949e] hover:text-white font-medium text-[11px] border border-[#30363d] transition"
-                        title="Split view"
+                        onClick={() => setReviseArtifact(art)}
+                        className="flex items-center space-x-1 px-2 py-1 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 font-medium text-[11px] border border-purple-500/30 transition shadow-xs"
+                        title="AI Revise artifact with git version tracking"
                       >
-                        <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
-                        <span>Split</span>
+                        <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                        <span>Revise</span>
                       </button>
                     </div>
 
@@ -311,6 +317,19 @@ export function ArtifactsView() {
           artifact={modalArtifact}
           initialMode={modalMode}
           onClose={() => setModalArtifact(null)}
+          onOpenRevise={() => {
+            const target = modalArtifact;
+            setModalArtifact(null);
+            setReviseArtifact(target);
+          }}
+        />
+      )}
+
+      {/* AI Revise & Version Control Modal */}
+      {reviseArtifact && (
+        <ArtifactReviseModal
+          artifact={reviseArtifact}
+          onClose={() => setReviseArtifact(null)}
         />
       )}
     </div>
