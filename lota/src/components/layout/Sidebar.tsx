@@ -409,7 +409,8 @@ export function Sidebar() {
                 <div className="px-2 py-2 text-[10px] text-[#8b949e] italic">No chats found</div>
               ) : (
                 filteredChats.map((chat) => {
-                  const isActive = activeChatId === chat.id && activeView === "chat";
+                  const isActive =
+                    activeView === "chat" && activeChatAgentId === null && activeChatId === chat.id;
                   return (
                     <div
                       key={chat.id}
