@@ -1,5 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useSessionStore } from "../../store/sessionStore";
+import { useProviderStore } from "../../store/providerStore";
+import { useSubagentStore } from "../../store/subagentStore";
+import { getModelContextLimit } from "../../lib/modelLimits";
 import { Cpu } from "lucide-react";
 
 interface ContextRingGaugeProps {
@@ -8,11 +11,33 @@ interface ContextRingGaugeProps {
 
 export function ContextRingGauge({ onClick }: ContextRingGaugeProps) {
   const [showTooltip, setShowTooltip] = useState(false);
-  const { usage, sessionInfo } = useSessionStore();
+  const { usage, sessionInfo, messages } = useSessionStore();
+  const { activeProviderId, activeModel } = useProviderStore();
+  const { subagents, activeChatAgentId } = useSubagentStore();
 
-  const percent = Math.min(100, Math.max(0, usage.contextPercent ?? 6.2));
-  const inputTokens = usage.inputTokens ?? 12450;
-  const outputTokens = usage.outputTokens ?? 1840;
+  const activeAgent = subagents.find((a) => a.id === activeChatAgentId);
+
+  const resolvedProviderId = sessionInfo.provider || activeProviderId || "gemini";
+  const resolvedModel =
+    sessionInfo.model ||
+    (activeAgent && activeAgent.model !== "inherit" ? activeAgent.model : activeModel) ||
+    "gemini-flash-latest";
+
+  const modelLimit = useMemo(
+    () => getModelContextLimit(resolvedModel, resolvedProviderId),
+    [resolvedModel, resolvedProviderId]
+  );
+
+  const totalTokens = useMemo(() => {
+    const sysTokens = Math.max(650, Math.round((activeAgent?.systemPrompt || "").length / 3.8));
+    const toolTokens = activeAgent ? 25 * 38 : 15 * 38;
+    const msgChars = messages.reduce((acc, m) => acc + m.content.length + (m.reasoning?.length || 0), 0);
+    const histTokens = Math.max(Math.round(msgChars / 3.8), (usage.inputTokens || 0) + (usage.outputTokens || 0));
+    return sysTokens + toolTokens + histTokens;
+  }, [messages, usage, activeAgent]);
+
+  const maxCapacity = modelLimit.maxTokens;
+  const percent = Math.min(100, Math.max(0, (totalTokens / maxCapacity) * 100));
 
   // Dynamic color coding based on context threshold
   const getColorClass = (val: number) => {
@@ -46,7 +71,7 @@ export function ContextRingGauge({ onClick }: ContextRingGaugeProps) {
             {/* Progress Stroke */}
             <path
               className={`${colors.stroke} stroke-current transition-all duration-300`}
-              strokeDasharray={`${percent}, 100`}
+              strokeDasharray={`${Math.max(1, percent.toFixed(2))}, 100`}
               strokeWidth="3.5"
               strokeLinecap="round"
               fill="none"
@@ -61,30 +86,32 @@ export function ContextRingGauge({ onClick }: ContextRingGaugeProps) {
 
       {/* Hover Tooltip Popup */}
       {showTooltip && (
-        <div className="absolute bottom-full right-0 mb-2 z-50 w-52 p-2.5 bg-[#161b22] border border-[#30363d] rounded-xl shadow-2xl text-[11px] text-[#c9d1d9] space-y-1.5 pointer-events-none animate-in fade-in slide-in-from-bottom-1 duration-150">
+        <div className="absolute bottom-full right-0 mb-2 z-50 w-56 p-2.5 bg-[#161b22] border border-[#30363d] rounded-xl shadow-2xl text-[11px] text-[#c9d1d9] space-y-1.5 pointer-events-none animate-in fade-in slide-in-from-bottom-1 duration-150">
           <div className="flex items-center justify-between font-semibold">
             <span className="text-white flex items-center space-x-1">
               <Cpu className={`w-3.5 h-3.5 ${colors.text}`} />
               <span>Context Window</span>
             </span>
-            <span className={`font-mono ${colors.text}`}>{percent.toFixed(1)}%</span>
+            <span className={`font-mono ${colors.text}`}>
+              {percent < 0.1 && totalTokens > 0 ? "<0.1%" : `${percent.toFixed(1)}%`}
+            </span>
           </div>
 
           <div className="text-[10px] text-[#8b949e] space-y-0.5 pt-0.5 border-t border-[#30363d]">
             <div className="flex justify-between">
               <span>Model:</span>
-              <span className="font-mono text-white">{sessionInfo.model || "gemini-1.5-pro"}</span>
+              <span className="font-mono text-white truncate max-w-[120px]">{resolvedModel}</span>
             </div>
             <div className="flex justify-between">
-              <span>In / Out:</span>
+              <span>Tokens:</span>
               <span className="font-mono text-white">
-                {inputTokens.toLocaleString()} / {outputTokens.toLocaleString()}
+                {totalTokens.toLocaleString()} / {maxCapacity.toLocaleString()}
               </span>
             </div>
           </div>
 
           <div className="text-[9px] text-[#58a6ff] pt-1 text-center font-medium">
-            Click to view memory & optimize
+            Click for full memory breakdown
           </div>
         </div>
       )}
