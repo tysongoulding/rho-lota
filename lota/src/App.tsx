@@ -125,8 +125,8 @@ export default function App() {
                 <VirtualizedMessageFeed messages={messages} />
                 <ApprovalModal />
                 <QueueBadge />
-                <div className="p-3 px-4 sm:px-8 lg:px-12 bg-[#0d1117] border-t border-[#30363d]/60 flex-shrink-0">
-                  <div className="max-w-4xl mx-auto">
+                <div className="p-3 px-3 sm:px-6 bg-[#0d1117] border-t border-[#30363d]/60 flex-shrink-0">
+                  <div className="max-w-5xl mx-auto w-full">
                     <PromptInput />
                   </div>
                 </div>
