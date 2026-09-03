@@ -163,7 +163,7 @@ impl ProviderFactory {
 
                 let client = rig::providers::gemini::Client::builder()
                     .http_client(http_client)
-                    .api_key("")
+                    .api_key(&key)
                     .build()
                     .map_err(|e| AppError::Provider(format!("Failed to initialize Gemini client: {e}")))?;
                 ModelHandle::named(provider.as_str(), client.completion_model(model))
