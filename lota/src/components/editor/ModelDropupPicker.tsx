@@ -95,51 +95,43 @@ export function ModelDropupPicker() {
       {/* Dynamic Dropup Menu */}
       {isOpen && (
         <div className="absolute bottom-full left-0 mb-2 z-50 w-72 max-h-[420px] flex flex-col bg-[#161b22] border border-[#30363d] rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-150 select-none">
-          {/* Header */}
-          <div className="px-3 py-2 border-b border-[#30363d] flex items-center justify-between bg-[#161b22]/70 flex-shrink-0">
-            <span className="text-[10px] font-semibold text-[#8b949e] uppercase tracking-wider">
-              Model & Thinking Selection
+          {/* Ultra-Compact Header & Thinking Budget Row */}
+          <div className="px-2.5 py-1.5 bg-[#0d1117]/90 border-b border-[#30363d] flex items-center justify-between flex-shrink-0 text-[10px]">
+            <span className="text-[#8b949e] font-medium flex items-center space-x-1">
+              <Brain className="w-3 h-3 text-purple-400" />
+              <span>Thinking</span>
             </span>
-            <button
-              onClick={handleOpenProviderSettings}
-              className="text-[10px] text-[#58a6ff] hover:underline flex items-center space-x-1"
-            >
-              <KeyRound className="w-2.5 h-2.5" />
-              <span>Keys</span>
-            </button>
-          </div>
 
-          {/* Thinking / Reasoning Effort Budget Bar (High, Med, Low, Off) */}
-          <div className="p-2.5 bg-[#0d1117]/80 border-b border-[#30363d] space-y-1.5 flex-shrink-0">
-            <div className="flex items-center justify-between text-[10px]">
-              <span className="font-semibold text-[#8b949e] uppercase tracking-wider flex items-center space-x-1">
-                <Brain className="w-3 h-3 text-purple-400" />
-                <span>Thinking Budget</span>
-              </span>
-              <span className="font-mono text-purple-400 capitalize font-semibold">
-                {thinkingLevel === "off" ? "Disabled" : `${thinkingLevel} Effort`}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-4 gap-1 p-0.5 bg-[#161b22] border border-[#30363d] rounded-lg text-[10px]">
+            {/* Segmented Pill Group */}
+            <div className="flex bg-[#161b22] p-0.5 rounded-md border border-[#30363d] text-[9px]">
               {(["off", "low", "med", "high"] as const).map((lvl) => (
                 <button
                   key={lvl}
                   type="button"
                   onClick={() => {
                     setThinkingLevel(lvl);
-                    addToast(`Set thinking effort to ${lvl.toUpperCase()}`, "info");
+                    addToast(`Thinking budget: ${lvl.toUpperCase()}`, "info");
                   }}
-                  className={`py-1 rounded font-medium capitalize transition ${
+                  className={`px-2 py-0.5 rounded font-medium capitalize transition ${
                     thinkingLevel === lvl
-                      ? "bg-purple-600 text-white font-semibold shadow-sm"
-                      : "text-[#8b949e] hover:text-white hover:bg-[#21262d]"
+                      ? "bg-purple-600 text-white font-semibold shadow-xs"
+                      : "text-[#8b949e] hover:text-white"
                   }`}
+                  title={`${lvl.toUpperCase()} thinking budget`}
                 >
                   {lvl}
                 </button>
               ))}
             </div>
+
+            <button
+              onClick={handleOpenProviderSettings}
+              className="text-[#58a6ff] hover:underline flex items-center space-x-0.5 text-[10px] pl-1"
+              title="Manage API Keys"
+            >
+              <KeyRound className="w-2.5 h-2.5" />
+              <span>Keys</span>
+            </button>
           </div>
 
           {/* Scrollable Model Group List */}
