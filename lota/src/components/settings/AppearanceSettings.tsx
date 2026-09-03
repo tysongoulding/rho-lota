@@ -77,7 +77,7 @@ export function AppearanceSettings() {
 
       {/* Theme Presets */}
       <div className="bg-[#161b22] border border-[#30363d] rounded-xl p-4 space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between min-h-[24px]">
           <label className="block text-[11px] font-semibold text-[#8b949e] uppercase tracking-wider">
             Presets
           </label>
@@ -92,30 +92,30 @@ export function AppearanceSettings() {
           )}
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {THEME_PRESETS.map((p) => {
             const isSelected = preset === p.id;
             return (
               <button
                 key={p.id}
                 onClick={() => setPreset(p.id)}
-                className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
+                className={`p-3 rounded-xl border text-left transition h-[82px] flex flex-col justify-between ${
                   isSelected
                     ? "bg-[#0d1117] border-blue-500 shadow-sm shadow-blue-500/10"
                     : "bg-[#0d1117] border-[#30363d] hover:border-[#8b949e]"
                 }`}
               >
-                <div className="flex items-center justify-between w-full mb-2">
+                <div className="flex items-center justify-between w-full mb-1">
                   <span className="font-semibold text-white text-xs">{p.name}</span>
                   {isSelected && <Check className="w-3.5 h-3.5 text-blue-400" />}
                 </div>
 
                 {/* Swatch Previews */}
-                <div className="flex space-x-1 w-full pt-1">
-                  <div className="w-4 h-4 rounded-full border border-black/20" style={{ backgroundColor: p.dark.background }} />
-                  <div className="w-4 h-4 rounded-full border border-black/20" style={{ backgroundColor: p.dark.card }} />
-                  <div className="w-4 h-4 rounded-full border border-black/20" style={{ backgroundColor: p.dark.accent }} />
-                  <div className="w-4 h-4 rounded-full border border-black/20" style={{ backgroundColor: p.dark.foreground }} />
+                <div className="flex space-x-1.5 w-full pt-1">
+                  <div className="w-3.5 h-3.5 rounded-full border border-black/20 flex-shrink-0" style={{ backgroundColor: p.dark.background }} />
+                  <div className="w-3.5 h-3.5 rounded-full border border-black/20 flex-shrink-0" style={{ backgroundColor: p.dark.card }} />
+                  <div className="w-3.5 h-3.5 rounded-full border border-black/20 flex-shrink-0" style={{ backgroundColor: p.dark.accent }} />
+                  <div className="w-3.5 h-3.5 rounded-full border border-black/20 flex-shrink-0" style={{ backgroundColor: p.dark.foreground }} />
                 </div>
               </button>
             );

@@ -20,25 +20,7 @@ export interface PresetTheme {
 export const THEME_PRESETS: PresetTheme[] = [
   {
     id: "default",
-    name: "Default (Rho)",
-    dark: {
-      background: "#101010",
-      foreground: "#cccccc",
-      card: "#181818",
-      border: "#282828",
-      accent: "#007acc",
-    },
-    light: {
-      background: "#f9fafb",
-      foreground: "#111827",
-      card: "#ffffff",
-      border: "#e5e7eb",
-      accent: "#007acc",
-    },
-  },
-  {
-    id: "github",
-    name: "GitHub",
+    name: "Default",
     dark: {
       background: "#0d1117",
       foreground: "#c9d1d9",
