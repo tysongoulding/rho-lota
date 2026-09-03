@@ -66,7 +66,7 @@ export async function loadSettingsFromDisk(): Promise<LotaPersistentSettings | n
         return settings;
       }
     } catch (err) {
-      console.warn("Failed to load settings from ~/.config/lota/settings.json:", err);
+      console.warn("Failed to load settings from ~/.config/rho/lota/settings.json:", err);
     }
   }
   return null;
@@ -105,7 +105,7 @@ export function scheduleSaveSettingsToDisk() {
         const { invoke } = await import("@tauri-apps/api/core");
         await invoke("save_lota_settings", { settings: payload });
       } catch (err) {
-        console.warn("Failed to save settings to ~/.config/lota/settings.json:", err);
+        console.warn("Failed to save settings to ~/.config/rho/lota/settings.json:", err);
       }
     }
   }, 400);

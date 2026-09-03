@@ -1,4 +1,4 @@
-//! File-backed persistent settings for lota desktop in ~/.config/lota/settings.json
+//! File-backed persistent settings for lota desktop in ~/.config/rho/lota/settings.json
 
 use serde_json::Value;
 use std::path::PathBuf;
@@ -7,11 +7,7 @@ pub fn lota_config_dir() -> PathBuf {
     if let Ok(custom) = std::env::var("LOTA_HOME") {
         return PathBuf::from(custom);
     }
-    let home = std::env::var("HOME")
-        .or_else(|_| std::env::var("USERPROFILE"))
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| PathBuf::from("."));
-    home.join(".config").join("lota")
+    rho_harness_core::config::default_config_dir().join("lota")
 }
 
 pub fn lota_settings_path() -> PathBuf {
