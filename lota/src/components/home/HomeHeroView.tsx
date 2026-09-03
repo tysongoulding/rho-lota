@@ -31,7 +31,26 @@ export function HomeHeroView({ fullname, onSelectPrompt }: HomeHeroViewProps) {
   const displayName = fullname || activeUser.name || "Developer";
 
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
+  const [use24Hour, setUse24Hour] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return localStorage.getItem("rho-lota-clock-24h") === "true";
+    } catch {
+      return false;
+    }
+  });
+
   const weather = useWeather();
+
+  const toggleTimeFormat = () => {
+    setUse24Hour((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("rho-lota-clock-24h", String(next));
+      } catch {}
+      return next;
+    });
+  };
 
   // Tick clock every second
   useEffect(() => {
@@ -41,19 +60,25 @@ export function HomeHeroView({ fullname, onSelectPrompt }: HomeHeroViewProps) {
     return () => clearInterval(timer);
   }, []);
 
-  // Compute greeting based on hour
+  // Standardized greeting boundaries:
+  // 05:00 - 11:59 => Good Morning
+  // 12:00 - 16:59 => Good Afternoon
+  // 17:00 - 04:59 => Good Evening
   const hour = currentTime.getHours();
-  let greeting = "Good Morning";
-  if (hour >= 12 && hour < 17) {
+  let greeting = "Good Evening";
+  if (hour >= 5 && hour < 12) {
+    greeting = "Good Morning";
+  } else if (hour >= 12 && hour < 17) {
     greeting = "Good Afternoon";
-  } else if (hour >= 17) {
+  } else {
     greeting = "Good Evening";
   }
 
   const timeString = currentTime.toLocaleTimeString([], {
-    hour: "2-digit",
+    hour: use24Hour ? "2-digit" : "numeric",
     minute: "2-digit",
     second: "2-digit",
+    hour12: !use24Hour,
   });
 
   const dateString = currentTime.toLocaleDateString([], {
@@ -149,11 +174,26 @@ export function HomeHeroView({ fullname, onSelectPrompt }: HomeHeroViewProps) {
           </div>
         </div>
 
-        {/* Digital Time Display */}
+        {/* Digital Time Display (Click to toggle 12h / 24h format) */}
         <div className="space-y-1">
-          <div className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight flex items-center justify-center space-x-3">
-            <Clock className="w-7 h-7 sm:w-8 sm:h-8 text-[#58a6ff]" />
-            <span>{timeString}</span>
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={toggleTimeFormat}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                toggleTimeFormat();
+              }
+            }}
+            className="group cursor-pointer select-none text-4xl sm:text-5xl font-extrabold text-white tracking-tight flex items-center justify-center space-x-3 hover:opacity-90 active:scale-[0.98] transition-all"
+            title={`Click to switch to ${use24Hour ? "12-hour (AM/PM)" : "24-hour (Military)"} time format`}
+          >
+            <Clock className="w-7 h-7 sm:w-8 sm:h-8 text-[#58a6ff] group-hover:rotate-12 transition-transform" />
+            <span className="font-mono">{timeString}</span>
+            <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-[#161b22] border border-[#30363d] text-[#8b949e] group-hover:border-blue-500 group-hover:text-white transition">
+              {use24Hour ? "24H" : "12H"}
+            </span>
           </div>
           <p className="text-xs sm:text-sm text-[#8b949e] font-medium">{dateString}</p>
         </div>
