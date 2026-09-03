@@ -1,14 +1,10 @@
 import { useState, useRef, useEffect } from "react";
-import { useAgentStore, DEFAULT_PERSONAS } from "../../store/agentStore";
-import { useSessionStore } from "../../store/sessionStore";
 import { useWorkspaceStore, GitProvider } from "../../store/workspaceStore";
 import { useUiStore } from "../../store/uiStore";
 import { useToastStore } from "../../store/toastStore";
 import { invoke } from "@tauri-apps/api/core";
 import {
   Command,
-  Bot,
-  Sparkles,
   Folder,
   FolderOpen,
   GitBranch,
@@ -20,8 +16,6 @@ import {
 } from "lucide-react";
 
 export function Statusbar() {
-  const { activePersonaId } = useAgentStore();
-  const { sessionInfo } = useSessionStore();
   const {
     workspacePath,
     repoName,
@@ -94,9 +88,6 @@ export function Statusbar() {
     setRepoPopoverOpen(false);
     addToast(`Updated repository config (${newBranch.trim()})`, "success");
   };
-
-  const currentPersona =
-    DEFAULT_PERSONAS.find((p) => p.id === activePersonaId) || DEFAULT_PERSONAS[0];
 
   const renderProviderIcon = (provider: GitProvider) => {
     switch (provider) {
@@ -383,16 +374,6 @@ export function Statusbar() {
 
       {/* Right Section */}
       <div className="flex items-center space-x-3 flex-shrink-0">
-        <div className="flex items-center space-x-1 text-[#c9d1d9] hidden sm:flex">
-          <Bot className="w-3 h-3 text-purple-400" />
-          <span>{currentPersona.name}</span>
-        </div>
-
-        <div className="flex items-center space-x-1 hidden md:flex">
-          <Sparkles className="w-3 h-3 text-amber-400" />
-          <span>{sessionInfo.provider || "anthropic"} / {sessionInfo.model || "claude-3-7-sonnet"}</span>
-        </div>
-
         <div className="flex items-center space-x-2">
           <span><kbd className="bg-[#161b22] px-1 py-0.5 rounded border border-[#30363d]">Ctrl+B</kbd> Sidebar</span>
           <span><kbd className="bg-[#161b22] px-1 py-0.5 rounded border border-[#30363d]">Ctrl+\</kbd> Workbench</span>
