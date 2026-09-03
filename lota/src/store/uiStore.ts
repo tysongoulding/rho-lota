@@ -10,6 +10,7 @@ export type ActiveView =
 
 export type SettingsTab =
   | "general"
+  | "profile"
   | "application"
   | "tools"
   | "plans"

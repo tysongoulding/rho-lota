@@ -4,6 +4,13 @@ import { useAgentStore, AgentPersona } from "../store/agentStore";
 
 export interface LotaPersistentSettings {
   version?: number;
+  profile?: {
+    name?: string;
+    email?: string;
+    role?: string;
+    bio?: string;
+    customInstructions?: string;
+  };
   theme?: {
     mode?: ThemeMode;
     preset?: string;
@@ -35,6 +42,13 @@ export async function loadSettingsFromDisk(): Promise<LotaPersistentSettings | n
       const { invoke } = await import("@tauri-apps/api/core");
       const settings = await invoke<LotaPersistentSettings>("load_lota_settings");
       if (settings && typeof settings === "object" && Object.keys(settings).length > 0) {
+        // Apply profile settings
+        if (settings.profile) {
+          try {
+            localStorage.setItem("rho-lota-profile", JSON.stringify(settings.profile));
+          } catch {}
+        }
+
         // Apply theme settings
         if (settings.theme) {
           const { initTheme } = useThemeStore.getState();
@@ -76,8 +90,15 @@ export function scheduleSaveSettingsToDisk() {
         const provider = useProviderStore.getState();
         const agent = useAgentStore.getState();
 
+        let profile = undefined;
+        try {
+          const rawProfile = localStorage.getItem("rho-lota-profile");
+          if (rawProfile) profile = JSON.parse(rawProfile);
+        } catch {}
+
         const payload: LotaPersistentSettings = {
           version: 1,
+          profile,
           theme: {
             mode: theme.mode,
             preset: theme.preset,

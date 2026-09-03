@@ -1,5 +1,6 @@
 import { useUiStore, SettingsTab } from "../../store/uiStore";
 import { GeneralSettings } from "./GeneralSettings";
+import { ProfileSettings } from "./ProfileSettings";
 import { ApplicationSettings } from "./ApplicationSettings";
 import { ToolboxManager } from "../agent/ToolboxManager";
 import { StructuredPlanView } from "../artifacts/StructuredPlanView";
@@ -9,6 +10,7 @@ import { AppearanceSettings } from "./AppearanceSettings";
 import { UsageBillingSettings } from "./UsageBillingSettings";
 import {
   SlidersHorizontal,
+  User,
   Laptop,
   Wrench,
   ListTodo,
@@ -23,6 +25,7 @@ export function SettingsHubView() {
 
   const tabs: { id: SettingsTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: "general", label: "General", icon: SlidersHorizontal },
+    { id: "profile", label: "Profile", icon: User },
     { id: "application", label: "Application", icon: Laptop },
     { id: "tools", label: "Dynamic Tools", icon: Wrench },
     { id: "plans", label: "Plan Tracker", icon: ListTodo },
@@ -59,6 +62,7 @@ export function SettingsHubView() {
       {/* Active Tab View Body */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {activeSettingsTab === "general" && <GeneralSettings />}
+        {activeSettingsTab === "profile" && <ProfileSettings />}
         {activeSettingsTab === "application" && <ApplicationSettings />}
         {activeSettingsTab === "tools" && <ToolboxManager />}
         {activeSettingsTab === "plans" && <StructuredPlanView />}

@@ -57,9 +57,17 @@ test.describe("Rho Lota Desktop Application E2E Suite", () => {
     // Click Settings
     await page.locator("aside").getByRole("button", { name: "Settings" }).click();
 
-    // Verify Settings subtabs
+    // Verify Settings subtabs including Profile
+    await expect(page.getByRole("button", { name: "General", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Profile", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Application", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Providers & Models" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Theme & Colors" })).toBeVisible();
+
+    // Switch to Profile tab & verify Identity card
+    await page.getByRole("button", { name: "Profile", exact: true }).click();
+    await expect(page.getByText("User Profile & Developer Identity")).toBeVisible();
+    await expect(page.getByText("Custom Instructions for AI Agents")).toBeVisible();
 
     // Switch to Theme & Colors
     await page.getByRole("button", { name: "Theme & Colors" }).click();
