@@ -1,16 +1,15 @@
 import { useThemeStore, ThemeMode, ThemeColors } from "../store/themeStore";
 import { useProviderStore, PreamblePreset } from "../store/providerStore";
 import { useAgentStore, AgentPersona } from "../store/agentStore";
+import { useUserStore, UserProfile } from "../store/userStore";
 
 export interface LotaPersistentSettings {
   version?: number;
-  profile?: {
-    name?: string;
-    email?: string;
-    role?: string;
-    bio?: string;
-    customInstructions?: string;
+  users?: {
+    activeUserId?: string;
+    users?: UserProfile[];
   };
+  profile?: UserProfile; // Backward compatibility fallback
   theme?: {
     mode?: ThemeMode;
     preset?: string;
@@ -42,11 +41,17 @@ export async function loadSettingsFromDisk(): Promise<LotaPersistentSettings | n
       const { invoke } = await import("@tauri-apps/api/core");
       const settings = await invoke<LotaPersistentSettings>("load_lota_settings");
       if (settings && typeof settings === "object" && Object.keys(settings).length > 0) {
-        // Apply profile settings
-        if (settings.profile) {
-          try {
-            localStorage.setItem("rho-lota-profile", JSON.stringify(settings.profile));
-          } catch {}
+        // Apply users & active profile
+        if (settings.users && settings.users.users) {
+          useUserStore.getState().initUsers({
+            activeUserId: settings.users.activeUserId,
+            users: settings.users.users,
+          });
+        } else if (settings.profile) {
+          useUserStore.getState().initUsers({
+            activeUserId: settings.profile.id,
+            users: [settings.profile],
+          });
         }
 
         // Apply theme settings
@@ -89,16 +94,15 @@ export function scheduleSaveSettingsToDisk() {
         const theme = useThemeStore.getState();
         const provider = useProviderStore.getState();
         const agent = useAgentStore.getState();
-
-        let profile = undefined;
-        try {
-          const rawProfile = localStorage.getItem("rho-lota-profile");
-          if (rawProfile) profile = JSON.parse(rawProfile);
-        } catch {}
+        const userState = useUserStore.getState();
 
         const payload: LotaPersistentSettings = {
           version: 1,
-          profile,
+          users: {
+            activeUserId: userState.activeUserId,
+            users: userState.users,
+          },
+          profile: userState.getActiveUser(),
           theme: {
             mode: theme.mode,
             preset: theme.preset,

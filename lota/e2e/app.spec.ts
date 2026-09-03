@@ -66,7 +66,8 @@ test.describe("Rho Lota Desktop Application E2E Suite", () => {
 
     // Switch to Profile tab & verify Identity card
     await page.getByRole("button", { name: "Profile", exact: true }).click();
-    await expect(page.getByText("User Profile & Developer Identity")).toBeVisible();
+    await expect(page.getByText("Multi-User Profiles & Developer Identity")).toBeVisible();
+    await expect(page.getByText("Machine Users")).toBeVisible();
     await expect(page.getByText("Custom Instructions for AI Agents")).toBeVisible();
 
     // Switch to Theme & Colors
