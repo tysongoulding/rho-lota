@@ -145,17 +145,6 @@ export function ModelDropupPicker() {
               ))
             )}
           </div>
-
-          {/* Footer Direct Settings Link */}
-          <div className="p-2 border-t border-[#30363d] bg-[#0d1117]/60 flex-shrink-0">
-            <button
-              onClick={handleOpenProviderSettings}
-              className="w-full flex items-center justify-center space-x-1.5 py-1 px-2 rounded-lg bg-[#21262d] hover:bg-[#30363d] text-white text-[11px] font-medium border border-[#30363d] transition"
-            >
-              <KeyRound className="w-3 h-3 text-amber-400" />
-              <span>Add / Manage Provider API Keys</span>
-            </button>
-          </div>
         </div>
       )}
     </div>
