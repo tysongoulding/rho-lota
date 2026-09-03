@@ -150,20 +150,14 @@ impl ProviderFactory {
                 ModelHandle::named(provider.as_str(), client.completion_model(model))
             }
             ProviderId::Gemini | ProviderId::Antigravity => {
-                let mut default_headers = reqwest::header::HeaderMap::new();
-                if let Ok(val) = reqwest::header::HeaderValue::from_str(&key) {
-                    default_headers.insert("x-goog-api-key", val);
-                }
-
                 let http_client = reqwest::Client::builder()
                     .no_proxy()
-                    .default_headers(default_headers)
                     .build()
                     .map_err(|e| AppError::Other(e.into()))?;
 
                 let client = rig::providers::gemini::Client::builder()
                     .http_client(http_client)
-                    .api_key("")
+                    .api_key(&key)
                     .build()
                     .map_err(|e| AppError::Provider(format!("Failed to initialize Gemini client: {e}")))?;
                 ModelHandle::named(provider.as_str(), client.completion_model(model))

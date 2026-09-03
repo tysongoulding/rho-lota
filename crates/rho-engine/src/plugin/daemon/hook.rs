@@ -52,6 +52,29 @@ impl DaemonHook {
     pub fn is_empty(&self) -> bool {
         self.daemons.is_empty()
     }
+
+    pub async fn notify_turn_start(&self, prompt: &str) {
+        let val = serde_json::json!(crate::plugin::protocol::PluginEvent::TurnStart {
+            prompt: prompt.to_string(),
+        });
+        for daemon in &self.daemons {
+            if daemon.subscribes_to("turn_start") {
+                let _ = daemon.call("hook/turn_start", val.clone()).await;
+            }
+        }
+    }
+
+    pub async fn notify_turn_end(&self, status: &str, tool_calls_count: usize) {
+        let val = serde_json::json!(crate::plugin::protocol::PluginEvent::TurnEnd {
+            status: status.to_string(),
+            tool_calls_count,
+        });
+        for daemon in &self.daemons {
+            if daemon.subscribes_to("turn_end") {
+                let _ = daemon.call("hook/turn_end", val.clone()).await;
+            }
+        }
+    }
 }
 
 impl AgentHook for DaemonHook {
@@ -135,6 +158,46 @@ impl AgentHook for DaemonHook {
                 continue;
             }
             if let Ok(res) = daemon.call("hook/completion_response", val.clone()).await
+                && let Some(flow) = res.result.and_then(|r| serde_json::from_value::<PluginFlow>(r).ok())
+            {
+                let action = flow_to_observation_action(flow);
+                if action != ObservationAction::continue_run() {
+                    return action;
+                }
+            }
+        }
+        ObservationAction::continue_run()
+    }
+
+    async fn on_text_delta(&self, _ctx: &HookContext, event: rig::agent::hook::TextDelta<'_>) -> ObservationAction {
+        let val = text_delta_event(event.delta);
+        for daemon in &self.daemons {
+            if !daemon.subscribes_to("text_delta") {
+                continue;
+            }
+            if let Ok(res) = daemon.call("hook/text_delta", val.clone()).await
+                && let Some(flow) = res.result.and_then(|r| serde_json::from_value::<PluginFlow>(r).ok())
+            {
+                let action = flow_to_observation_action(flow);
+                if action != ObservationAction::continue_run() {
+                    return action;
+                }
+            }
+        }
+        ObservationAction::continue_run()
+    }
+
+    async fn on_reasoning_delta(
+        &self,
+        _ctx: &HookContext,
+        event: rig::agent::hook::ReasoningDelta<'_>,
+    ) -> ObservationAction {
+        let val = reasoning_delta_event(event.delta);
+        for daemon in &self.daemons {
+            if !daemon.subscribes_to("reasoning_delta") {
+                continue;
+            }
+            if let Ok(res) = daemon.call("hook/reasoning_delta", val.clone()).await
                 && let Some(flow) = res.result.and_then(|r| serde_json::from_value::<PluginFlow>(r).ok())
             {
                 let action = flow_to_observation_action(flow);
