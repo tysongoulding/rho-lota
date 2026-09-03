@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useWeather } from "../../hooks/useWeather";
 import { useUserStore } from "../../store/userStore";
 import { PromptInput } from "../editor/PromptInput";
+import { MorningReportWidget } from "./MorningReportWidget";
 import {
   Sun,
   CloudSun,
@@ -199,6 +200,11 @@ export function HomeHeroView({ fullname, onSelectPrompt }: HomeHeroViewProps) {
             {greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#58a6ff] via-purple-400 to-pink-400">{displayName}</span>
           </h1>
         </div>
+      </div>
+
+      {/* Morning Briefing Calendar + Email Widget */}
+      <div className="w-full max-w-3xl pt-4">
+        <MorningReportWidget />
       </div>
 
       {/* Centered Chat Prompt Input in the Main View */}
