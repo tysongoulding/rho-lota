@@ -105,19 +105,22 @@ fn open_local_path(path: String) {
 
 #[tauri::command]
 fn open_external_url(url: String) {
+    let trimmed = url.trim();
+    if !trimmed.starts_with("http://") && !trimmed.starts_with("https://") {
+        return;
+    }
+
     #[cfg(target_os = "windows")]
     {
-        let _ = std::process::Command::new("cmd")
-            .args(["/C", "start", "", &url])
-            .spawn();
+        let _ = std::process::Command::new("explorer.exe").arg(trimmed).spawn();
     }
     #[cfg(target_os = "macos")]
     {
-        let _ = std::process::Command::new("open").arg(&url).spawn();
+        let _ = std::process::Command::new("open").arg(trimmed).spawn();
     }
     #[cfg(target_os = "linux")]
     {
-        let _ = std::process::Command::new("xdg-open").arg(&url).spawn();
+        let _ = std::process::Command::new("xdg-open").arg(trimmed).spawn();
     }
 }
 

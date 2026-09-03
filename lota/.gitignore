@@ -3,3 +3,5 @@ dist
 dist-ssr
 *.local
 src-tauri/target
+test-results
+playwright-report
