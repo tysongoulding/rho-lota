@@ -65,8 +65,41 @@ export function getModelContextLimit(modelName?: string, providerId?: string): M
 
   // Fallback default
   return {
-    maxTokens: 200000,
-    displayName: modelName || "Default Model",
-    providerName: providerId ? providerId.toUpperCase() : "Rho Harness",
+    maxTokens: 128000,
+    displayName: modelName || "Unknown Model",
+    providerName: providerId ? providerId.toUpperCase() : "Custom Provider",
   };
+}
+
+export function supportsThinking(modelName?: string, providerId?: string): boolean {
+  if (!modelName) return false;
+  const clean = modelName.toLowerCase();
+
+  // Gemini thinking models
+  if (
+    clean.includes("gemini-3.7") ||
+    clean.includes("gemini-3.8") ||
+    clean.includes("thinking") ||
+    clean.includes("gemini-flash-latest") ||
+    clean.includes("gemini-3.5-flash")
+  ) {
+    return true;
+  }
+
+  // Anthropic extended thinking models
+  if (clean.includes("claude-3-7-sonnet") || clean.includes("claude-3.7")) {
+    return true;
+  }
+
+  // OpenAI reasoning effort models
+  if (clean.includes("o1") || clean.includes("o3")) {
+    return true;
+  }
+
+  // DeepSeek reasoning models
+  if (clean.includes("r1") || clean.includes("reasoner")) {
+    return true;
+  }
+
+  return false;
 }

@@ -3,6 +3,7 @@ import { useProviderStore, ThinkingLevel } from "../../store/providerStore";
 import { useSessionStore } from "../../store/sessionStore";
 import { useUiStore } from "../../store/uiStore";
 import { useToastStore } from "../../store/toastStore";
+import { supportsThinking } from "../../lib/modelLimits";
 import {
   ChevronUp,
   Check,
@@ -11,8 +12,12 @@ import {
   Brain,
 } from "lucide-react";
 
-export function formatModelDisplayName(model: string, thinking: ThinkingLevel = "high"): string {
-  if (!model) return `Gemini 3.7 Flash ${thinking === "off" ? "" : thinking.charAt(0).toUpperCase() + thinking.slice(1)}`.trim();
+export function formatModelDisplayName(
+  model: string,
+  thinking: ThinkingLevel = "high",
+  providerId?: string
+): string {
+  if (!model) return "Gemini 3.7 Flash High";
   const clean = model.toLowerCase();
   let base = model;
   if (clean.includes("gemini-flash") || clean.includes("gemini-3.7-flash")) base = "Gemini 3.7 Flash";
@@ -26,7 +31,8 @@ export function formatModelDisplayName(model: string, thinking: ThinkingLevel = 
   else if (clean.includes("deepseek")) base = "DeepSeek Coder";
   else if (clean.includes("llama")) base = "Llama 3.3 70B";
 
-  if (thinking === "off") return base;
+  const isThinkingSupported = supportsThinking(model, providerId);
+  if (!isThinkingSupported || thinking === "off") return base;
   const suffix = thinking === "high" ? "High" : thinking === "med" ? "Med" : "Low";
   return `${base} ${suffix}`;
 }
@@ -57,6 +63,11 @@ export function ModelDropupPicker() {
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
+  const isThinkingSupported = useMemo(
+    () => supportsThinking(activeModel, activeProviderId),
+    [activeModel, activeProviderId]
+  );
+
   // Filter providers that are actively configured (has key, is local, or marked configured)
   const configuredProviders = useMemo(() => {
     return Object.values(providers).filter(
@@ -67,7 +78,7 @@ export function ModelDropupPicker() {
   const handleSelectModel = (providerId: string, model: string) => {
     setActiveProviderAndModel(providerId, model);
     setSessionModel(providerId, model);
-    addToast(`Switched active model to ${formatModelDisplayName(model, thinkingLevel)}`, "info");
+    addToast(`Switched active model to ${formatModelDisplayName(model, thinkingLevel, providerId)}`, "info");
     setIsOpen(false);
   };
 
@@ -84,10 +95,10 @@ export function ModelDropupPicker() {
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center space-x-1 py-1 px-1 rounded-md text-xs text-[#8b949e] hover:text-white hover:bg-[#21262d] transition cursor-pointer select-none group"
-        title={`Active Model: ${activeModel} (${thinkingLevel.toUpperCase()} Thinking). Click to switch model or adjust thinking budget.`}
+        title={`Active Model: ${activeModel}${isThinkingSupported ? ` (${thinkingLevel.toUpperCase()} Thinking)` : ""}. Click to switch model or provider.`}
       >
         <span className="font-medium text-xs text-[#c9d1d9] group-hover:text-white transition">
-          {formatModelDisplayName(activeModel || "gemini-flash-latest", thinkingLevel)}
+          {formatModelDisplayName(activeModel || "gemini-flash-latest", thinkingLevel, activeProviderId)}
         </span>
         <ChevronUp className={`w-3.5 h-3.5 text-[#8b949e] group-hover:text-white transition-transform ${isOpen ? "rotate-180" : ""}`} />
       </button>
@@ -98,31 +109,37 @@ export function ModelDropupPicker() {
           {/* Ultra-Compact Header & Thinking Budget Row */}
           <div className="px-2.5 py-1.5 bg-[#0d1117]/90 border-b border-[#30363d] flex items-center justify-between flex-shrink-0 text-[10px]">
             <span className="text-[#8b949e] font-medium flex items-center space-x-1">
-              <Brain className="w-3 h-3 text-purple-400" />
-              <span>Thinking</span>
+              <Brain className={`w-3 h-3 ${isThinkingSupported ? "text-purple-400" : "text-[#484f58]"}`} />
+              <span className={isThinkingSupported ? "text-[#c9d1d9]" : "text-[#6e7681]"}>
+                Thinking {isThinkingSupported ? "" : "(N/A)"}
+              </span>
             </span>
 
-            {/* Segmented Pill Group */}
-            <div className="flex bg-[#161b22] p-0.5 rounded-md border border-[#30363d] text-[9px]">
-              {(["off", "low", "med", "high"] as const).map((lvl) => (
-                <button
-                  key={lvl}
-                  type="button"
-                  onClick={() => {
-                    setThinkingLevel(lvl);
-                    addToast(`Thinking budget: ${lvl.toUpperCase()}`, "info");
-                  }}
-                  className={`px-2 py-0.5 rounded font-medium capitalize transition ${
-                    thinkingLevel === lvl
-                      ? "bg-purple-600 text-white font-semibold shadow-xs"
-                      : "text-[#8b949e] hover:text-white"
-                  }`}
-                  title={`${lvl.toUpperCase()} thinking budget`}
-                >
-                  {lvl}
-                </button>
-              ))}
-            </div>
+            {/* Segmented Pill Group (Enabled if model supports thinking, disabled otherwise) */}
+            {isThinkingSupported ? (
+              <div className="flex bg-[#161b22] p-0.5 rounded-md border border-[#30363d] text-[9px]">
+                {(["off", "low", "med", "high"] as const).map((lvl) => (
+                  <button
+                    key={lvl}
+                    type="button"
+                    onClick={() => {
+                      setThinkingLevel(lvl);
+                      addToast(`Thinking budget: ${lvl.toUpperCase()}`, "info");
+                    }}
+                    className={`px-2 py-0.5 rounded font-medium capitalize transition ${
+                      thinkingLevel === lvl
+                        ? "bg-purple-600 text-white font-semibold shadow-xs"
+                        : "text-[#8b949e] hover:text-white"
+                    }`}
+                    title={`${lvl.toUpperCase()} thinking budget`}
+                  >
+                    {lvl}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <span className="text-[10px] text-[#484f58] font-mono italic">Standard Model</span>
+            )}
 
             <button
               onClick={handleOpenProviderSettings}
