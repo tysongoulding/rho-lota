@@ -156,9 +156,9 @@ export function PromptInput({ placeholder }: PromptInputProps = {}) {
       )}
 
       {/* Unified Compact Prompt Card */}
-      <div className="bg-[#161b22] border border-[#30363d] rounded-2xl p-2.5 focus-within:border-[#58a6ff]/70 focus-within:ring-1 focus-within:ring-[#58a6ff]/20 shadow-xl transition-all space-y-2">
+      <div className="bg-[#161b22] border border-[#30363d] rounded-2xl py-3 px-4 focus-within:border-[#58a6ff]/70 focus-within:ring-1 focus-within:ring-[#58a6ff]/20 shadow-xl transition-all space-y-2.5">
         {/* Upper Input Area (Textarea + Send/Ring Action Cluster) */}
-        <div className="flex items-end space-x-2">
+        <div className="flex items-end space-x-3">
           <textarea
             ref={textareaRef}
             value={text}
@@ -172,10 +172,10 @@ export function PromptInput({ placeholder }: PromptInputProps = {}) {
                 ? `Ask ${activeAgent.name} anything, or use @file / /command...`
                 : "Ask Rho anything, or use @file / /command...")
             }
-            className="flex-1 bg-transparent border-none resize-none outline-none text-xs md:text-sm text-white placeholder-[#6e7681] min-h-[36px] max-h-44 py-1 px-1 leading-relaxed overflow-y-auto"
+            className="flex-1 bg-transparent border-none resize-none outline-none text-xs md:text-sm text-white placeholder-[#6e7681] min-h-[36px] max-h-44 py-1 px-1.5 leading-relaxed overflow-y-auto"
           />
 
-          <div className="flex items-center space-x-1.5 flex-shrink-0 pb-0.5">
+          <div className="flex items-center space-x-2 flex-shrink-0 pb-0.5">
             <ContextRingGauge onClick={() => setShowContextModal(true)} />
 
             {isRunning ? (
@@ -200,7 +200,7 @@ export function PromptInput({ placeholder }: PromptInputProps = {}) {
         </div>
 
         {/* Lower Toolbar: Tools on Left, Keyboard Hints on Right */}
-        <div className="flex items-center justify-between pt-1.5 border-t border-[#30363d]/60 text-[10px] text-[#8b949e]">
+        <div className="flex items-center justify-between pt-2 border-t border-[#30363d]/60 text-[10px] text-[#8b949e]">
           {/* Left: Quick Actions */}
           <div className="flex items-center space-x-1.5">
             <AddContextDropup

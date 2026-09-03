@@ -203,12 +203,12 @@ export function HomeHeroView({ fullname, onSelectPrompt }: HomeHeroViewProps) {
       </div>
 
       {/* Morning Briefing Calendar + Email Widget */}
-      <div className="w-full max-w-3xl pt-4">
+      <div className="w-full max-w-3xl px-4 sm:px-6 pt-4">
         <MorningReportWidget />
       </div>
 
       {/* Centered Chat Prompt Input in the Main View */}
-      <div className="w-full max-w-3xl my-6 space-y-4">
+      <div className="w-full max-w-3xl px-4 sm:px-6 my-6 space-y-4">
         <PromptInput placeholder="What would you like to build, verify, or automate today?" />
 
         {/* Quick Suggestion Cards */}
