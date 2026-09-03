@@ -9,12 +9,13 @@ import {
   FileCode,
   Code2,
   FileText,
+  BarChart3,
   X,
 } from "lucide-react";
 
 export function StreamingWorkbench() {
   const { workbenchOpen, activeWorkbenchTab, setActiveWorkbenchTab, setWorkbenchOpen } = useUiStore();
-  const { messages } = useSessionStore();
+  const { messages, usage, sessionInfo, compaction } = useSessionStore();
   const { selectedFile } = useWorkspaceStore();
 
   if (!workbenchOpen) return null;
@@ -29,10 +30,11 @@ export function StreamingWorkbench() {
   const latestThinking = [...messages].reverse().find((m) => m.reasoning)?.reasoning;
 
   const tabs: { id: WorkbenchTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: "diff", label: "Active Diff", icon: FileCode },
-    { id: "file", label: "File Preview", icon: FileText },
-    { id: "thinking", label: "Thinking Stream", icon: Brain },
-    { id: "json", label: "Raw JSON", icon: Code2 },
+    { id: "diff", label: "Diff", icon: FileCode },
+    { id: "file", label: "File", icon: FileText },
+    { id: "thinking", label: "Thinking", icon: Brain },
+    { id: "usage", label: "Usage", icon: BarChart3 },
+    { id: "json", label: "JSON", icon: Code2 },
   ];
 
   return (
@@ -131,6 +133,48 @@ export function StreamingWorkbench() {
                 <p>No reasoning stream recorded yet.</p>
               </div>
             )}
+          </div>
+        )}
+
+        {activeWorkbenchTab === "usage" && (
+          <div className="space-y-4">
+            <div className="p-3 bg-[#161b22] border border-[#30363d] rounded-xl space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-white">Session Token Usage</span>
+                <span className="text-[10px] text-blue-400 font-mono">
+                  {sessionInfo.model || "gemini-flash-latest"}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-1 text-[11px]">
+                <div className="p-2 bg-[#0d1117] rounded-lg border border-[#30363d]">
+                  <span className="text-[10px] text-[#8b949e]">Input Tokens</span>
+                  <div className="font-mono text-white font-semibold">
+                    {(usage.inputTokens || 0).toLocaleString()}
+                  </div>
+                </div>
+                <div className="p-2 bg-[#0d1117] rounded-lg border border-[#30363d]">
+                  <span className="text-[10px] text-[#8b949e]">Output Tokens</span>
+                  <div className="font-mono text-white font-semibold">
+                    {(usage.outputTokens || 0).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-2 bg-[#0d1117] rounded-lg border border-[#30363d] flex items-center justify-between text-[11px]">
+                <span className="text-[#8b949e]">Tokens Reclaimed (Compaction)</span>
+                <span className="font-mono text-emerald-400 font-semibold">
+                  {compaction.totalTokensSaved.toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            <div className="p-3 bg-[#161b22] border border-[#30363d] rounded-xl space-y-1.5">
+              <span className="font-semibold text-white text-[11px]">Token Ledger & Costs</span>
+              <p className="text-[10px] text-[#8b949e] leading-relaxed">
+                Live cost tracking is active. Real-time rates calculate per turn based on standard provider pricing tables.
+              </p>
+            </div>
           </div>
         )}
 

@@ -27,7 +27,7 @@ export type CustomiseTab =
   | "mcps"
   | "plugins";
 
-export type WorkbenchTab = "diff" | "thinking" | "file" | "json";
+export type WorkbenchTab = "diff" | "thinking" | "file" | "json" | "usage";
 
 interface UiState {
   sidebarOpen: boolean;

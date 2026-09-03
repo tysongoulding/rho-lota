@@ -2,12 +2,22 @@ import { useState, useRef, useCallback } from "react";
 import { useSessionStore } from "../../store/sessionStore";
 import { useWorkspaceStore } from "../../store/workspaceStore";
 import { useSubagentStore } from "../../store/subagentStore";
+import { useUiStore } from "../../store/uiStore";
 import { useRhoEngine } from "../../hooks/useRhoEngine";
 import { useTurnQueue } from "../../hooks/useTurnQueue";
 import { AutocompleteMenu } from "./AutocompleteMenu";
 import { ContextRingGauge } from "./ContextRingGauge";
 import { ContextWindowModal } from "../modals/ContextWindowModal";
-import { Send, Square, CornerDownLeft, FileCode, X } from "lucide-react";
+import { AddContextDropup } from "./AddContextDropup";
+import { ModelDropupPicker } from "./ModelDropupPicker";
+import {
+  Send,
+  Square,
+  CornerDownLeft,
+  FileCode,
+  X,
+  BarChart3,
+} from "lucide-react";
 
 interface PromptInputProps {
   placeholder?: string;
@@ -23,6 +33,7 @@ export function PromptInput({ placeholder }: PromptInputProps = {}) {
   const { isRunning, addUserMessage } = useSessionStore();
   const { attachedFiles, removeAttachedFile, clearAttachedFiles } = useWorkspaceStore();
   const { subagents, activeChatAgentId } = useSubagentStore();
+  const { setActiveWorkbenchTab, setWorkbenchOpen } = useUiStore();
   const { prompt, abort } = useRhoEngine();
   const { enqueue } = useTurnQueue();
 
@@ -68,20 +79,42 @@ export function PromptInput({ placeholder }: PromptInputProps = {}) {
     const val = e.target.value;
     setText(val);
 
-    const match = val.match(/(?:^|\s)([@/][\w-./]*)$/);
-    if (match) {
+    const cursorPos = e.target.selectionStart || 0;
+    const textBeforeCursor = val.slice(0, cursorPos);
+    const triggerMatch = textBeforeCursor.match(/(?:^|\s)([@/][\w-./]*)$/);
+
+    if (triggerMatch) {
       setShowAutocomplete(true);
-      setAutocompleteFilter(match[1]);
+      setAutocompleteFilter(triggerMatch[1]);
     } else {
       setShowAutocomplete(false);
     }
   };
 
+  const handleInsertChar = (char: string) => {
+    setText((prev) => `${prev}${prev.endsWith(" ") || prev === "" ? "" : " "}${char}`);
+    if (char === "@" || char === "/") {
+      setShowAutocomplete(true);
+      setAutocompleteFilter(char);
+    }
+    textareaRef.current?.focus();
+  };
+
+  const handleOpenBrowserTool = () => {
+    setText((prev) => `${prev}${prev.endsWith(" ") || prev === "" ? "" : " "}/browser `);
+    textareaRef.current?.focus();
+  };
+
+  const handleOpenUsageWorkbench = () => {
+    setActiveWorkbenchTab("usage");
+    setWorkbenchOpen(true);
+  };
+
   return (
-    <div className="relative p-3 border-t border-[#30363d] bg-[#161b22]">
-      {/* Attached Files Chips */}
+    <div className="relative w-full">
+      {/* Attached Files Pills */}
       {attachedFiles.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-2">
+        <div className="flex flex-wrap gap-1.5 mb-2 px-1">
           {attachedFiles.map((file) => (
             <span
               key={file}
@@ -100,6 +133,7 @@ export function PromptInput({ placeholder }: PromptInputProps = {}) {
         </div>
       )}
 
+      {/* Autocomplete Dropdown */}
       {showAutocomplete && (
         <AutocompleteMenu
           filter={autocompleteFilter}
@@ -112,7 +146,8 @@ export function PromptInput({ placeholder }: PromptInputProps = {}) {
         />
       )}
 
-      <div className="flex items-end space-x-2 bg-[#0d1117] border border-[#30363d] rounded-xl p-2 focus-within:border-blue-500 transition">
+      {/* Main Textarea Container */}
+      <div className="flex items-end space-x-2 bg-[#0d1117] border border-[#30363d] rounded-xl p-2 focus-within:border-blue-500 transition shadow-inner">
         <textarea
           ref={textareaRef}
           value={text}
@@ -145,7 +180,7 @@ export function PromptInput({ placeholder }: PromptInputProps = {}) {
             <button
               onClick={handleSend}
               disabled={!text.trim() && attachedFiles.length === 0}
-              className="p-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white transition"
+              className="p-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white transition shadow-sm"
               title="Send Message (Enter)"
             >
               <Send className="w-4 h-4" />
@@ -154,18 +189,46 @@ export function PromptInput({ placeholder }: PromptInputProps = {}) {
         </div>
       </div>
 
-      <div className="flex items-center justify-between mt-2 px-1 text-[10px] text-[#8b949e]">
+      {/* Prompt Composer Footer Toolbar */}
+      <div className="flex items-center justify-between mt-2.5 px-1 text-[10px] text-[#8b949e]">
+        {/* Left Side: Context Plus Dropup + Dynamic Model Dropup + View Usage */}
         <div className="flex items-center space-x-2">
-          <span>
-            <kbd className="bg-[#21262d] px-1 py-0.5 rounded border border-[#30363d]">Enter</kbd> submit
-          </span>
-          <span>
-            <kbd className="bg-[#21262d] px-1 py-0.5 rounded border border-[#30363d]">Shift+Enter</kbd> newline
-          </span>
+          <AddContextDropup
+            onInsertMention={handleInsertChar}
+            onOpenBrowserTool={handleOpenBrowserTool}
+          />
+
+          <ModelDropupPicker />
+
+          <button
+            type="button"
+            onClick={handleOpenUsageWorkbench}
+            className="flex items-center space-x-1 px-2.5 py-1 rounded-lg text-xs font-medium text-[#c9d1d9] hover:text-white bg-[#161b22] hover:bg-[#21262d] border border-[#30363d] transition shadow-sm"
+            title="Open Token Usage & Cost Ledger (Right Workbench)"
+          >
+            <BarChart3 className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="text-[11px]">Usage</span>
+          </button>
         </div>
-        <div className="flex items-center space-x-1">
-          <CornerDownLeft className="w-3 h-3" />
-          <span>Queueing enabled when running</span>
+
+        {/* Right Side: Right-Aligned Keyboard Hints */}
+        <div className="flex items-center space-x-3 text-[10px] text-[#8b949e]">
+          {isRunning && (
+            <div className="flex items-center space-x-1 text-blue-400 font-medium">
+              <CornerDownLeft className="w-3 h-3" />
+              <span>Queueing enabled</span>
+            </div>
+          )}
+
+          <div className="flex items-center space-x-1.5 font-medium">
+            <span>
+              <kbd className="bg-[#21262d] px-1.5 py-0.5 rounded border border-[#30363d] text-[9px] text-[#c9d1d9] font-mono">Enter</kbd> submit
+            </span>
+            <span className="text-[#484f58]">•</span>
+            <span>
+              <kbd className="bg-[#21262d] px-1.5 py-0.5 rounded border border-[#30363d] text-[9px] text-[#c9d1d9] font-mono">Shift+Enter</kbd> newline
+            </span>
+          </div>
         </div>
       </div>
 
