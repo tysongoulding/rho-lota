@@ -64,7 +64,9 @@ fn open_local_path(path: String) {
 fn open_external_url(url: String) {
     #[cfg(target_os = "windows")]
     {
-        let _ = std::process::Command::new("cmd").args(["/C", "start", "", &url]).spawn();
+        let _ = std::process::Command::new("cmd")
+            .args(["/C", "start", "", &url])
+            .spawn();
     }
     #[cfg(target_os = "macos")]
     {
