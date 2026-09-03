@@ -1,7 +1,7 @@
+use rho_engine::auth::AuthStore;
 use rho_harness_core::rpc::protocol::{RpcCommand, RpcEvent, RpcRequest, RpcResponse};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
@@ -20,29 +20,15 @@ pub struct EngineState {
     pub session_id: Arc<Mutex<String>>,
     pub active_model: Arc<Mutex<String>>,
     pub active_provider: Arc<Mutex<String>>,
-    pub api_keys: Arc<Mutex<HashMap<String, String>>>,
+    pub auth_store: Arc<Mutex<AuthStore>>,
     pub is_running: Arc<AtomicBool>,
     pub abort_flag: Arc<AtomicBool>,
 }
 
 impl Default for EngineState {
     fn default() -> Self {
-        let mut initial_keys = HashMap::new();
-        if let Ok(key) = std::env::var("ANTHROPIC_API_KEY") {
-            initial_keys.insert("anthropic".to_string(), key);
-        }
-        if let Ok(key) = std::env::var("OPENAI_API_KEY") {
-            initial_keys.insert("openai".to_string(), key);
-        }
-        if let Ok(key) = std::env::var("GEMINI_API_KEY") {
-            initial_keys.insert("gemini".to_string(), key);
-        }
-        if let Ok(key) = std::env::var("DEEPSEEK_API_KEY") {
-            initial_keys.insert("deepseek".to_string(), key);
-        }
-        if let Ok(key) = std::env::var("GROQ_API_KEY") {
-            initial_keys.insert("groq".to_string(), key);
-        }
+        let auth_path = rho_harness_core::config::default_config_dir().join("auth.json");
+        let auth_store = AuthStore::load(&auth_path).unwrap_or_default();
 
         Self {
             session_id: Arc::new(Mutex::new(format!(
@@ -52,9 +38,9 @@ impl Default for EngineState {
                     .unwrap()
                     .as_millis()
             ))),
-            active_model: Arc::new(Mutex::new("gemini-2.0-flash".to_string())),
+            active_model: Arc::new(Mutex::new("gemini-flash-latest".to_string())),
             active_provider: Arc::new(Mutex::new("gemini".to_string())),
-            api_keys: Arc::new(Mutex::new(initial_keys)),
+            auth_store: Arc::new(Mutex::new(auth_store)),
             is_running: Arc::new(AtomicBool::new(false)),
             abort_flag: Arc::new(AtomicBool::new(false)),
         }
@@ -377,8 +363,10 @@ pub async fn handle_rpc_command(
             let session_id = state.session_id.lock().await.clone();
             let model = state.active_model.lock().await.clone();
             let provider = state.active_provider.lock().await.clone();
-            let keys = state.api_keys.lock().await.clone();
-            let api_key = keys.get(&provider).cloned().unwrap_or_default();
+            let api_key = {
+                let auth_store = state.auth_store.lock().await;
+                auth_store.get_key_sync(&provider).unwrap_or(None).unwrap_or_default()
+            };
 
             state.is_running.store(true, Ordering::SeqCst);
             state.abort_flag.store(false, Ordering::SeqCst);

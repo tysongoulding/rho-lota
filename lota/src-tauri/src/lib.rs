@@ -18,15 +18,9 @@ async fn send_rpc_command(
 
 #[tauri::command]
 async fn sync_provider_keys(keys: HashMap<String, String>, state: tauri::State<'_, EngineState>) -> Result<(), String> {
-    let mut api_keys = state.api_keys.lock().await;
-    let config_dir = rho_harness_core::config::default_config_dir();
-    let _ = std::fs::create_dir_all(&config_dir);
-    let auth_file = config_dir.join("auth.json");
-    let mut auth_store = rho_engine::auth::AuthStore::load(&auth_file).unwrap_or_default();
-
+    let mut auth_store = state.auth_store.lock().await;
     for (k, v) in keys {
         if !v.trim().is_empty() {
-            api_keys.insert(k.clone(), v.clone());
             let _ = auth_store.set_key(&k, &v);
         }
     }
@@ -34,10 +28,8 @@ async fn sync_provider_keys(keys: HashMap<String, String>, state: tauri::State<'
 }
 
 #[tauri::command]
-async fn get_saved_auth_keys() -> Result<HashMap<String, String>, String> {
-    let config_dir = rho_harness_core::config::default_config_dir();
-    let auth_file = config_dir.join("auth.json");
-    let auth_store = rho_engine::auth::AuthStore::load(&auth_file).unwrap_or_default();
+async fn get_saved_auth_keys(state: tauri::State<'_, EngineState>) -> Result<HashMap<String, String>, String> {
+    let auth_store = state.auth_store.lock().await;
     let mut result = HashMap::new();
 
     for provider in [
