@@ -62,6 +62,7 @@ interface SessionState {
   clearPendingApproval: () => void;
   resetSession: () => void;
   setSessionModel: (provider: string, model: string) => void;
+  setSessionMessages: (messages: MessageItem[]) => void;
 }
 
 export const useSessionStore = create<SessionState>((set) => ({
@@ -73,6 +74,14 @@ export const useSessionStore = create<SessionState>((set) => ({
   rawEvents: [],
   pendingApproval: null,
 
+  setSessionMessages: (messages: MessageItem[]) =>
+    set({
+      messages,
+      turnPhase: "idle",
+      isRunning: false,
+      pendingApproval: null,
+    }),
+
   setSessionModel: (provider: string, model: string) =>
     set((state) => ({
       sessionInfo: {
@@ -83,14 +92,18 @@ export const useSessionStore = create<SessionState>((set) => ({
     })),
 
   addUserMessage: (content: string) =>
-    set((state) => ({
-      turnPhase: "thinking",
-      isRunning: true,
-      messages: [
+    set((state) => {
+      const updatedMessages: MessageItem[] = [
         ...state.messages,
         { id: `user-${Date.now()}`, role: "user", content },
-      ],
-    })),
+      ];
+      syncActiveConversation(updatedMessages);
+      return {
+        turnPhase: "thinking",
+        isRunning: true,
+        messages: updatedMessages,
+      };
+    }),
 
   appendBufferedChunk: (chunk: string) =>
     set((state) => {
@@ -243,29 +256,50 @@ export const useSessionStore = create<SessionState>((set) => ({
           };
 
         case "turn_end":
+          syncActiveConversation(state.messages);
           return {
             rawEvents,
             isRunning: false,
             turnPhase: "idle",
           };
 
-        case "error":
+        case "error": {
+          const updatedMessages: MessageItem[] = [
+            ...state.messages,
+            {
+              id: `err-${Date.now()}`,
+              role: "system",
+              content: `Error [${event.code}]: ${event.message}`,
+            },
+          ];
+          syncActiveConversation(updatedMessages);
           return {
             rawEvents,
             isRunning: false,
             turnPhase: "error",
-            messages: [
-              ...state.messages,
-              {
-                id: `err-${Date.now()}`,
-                role: "system",
-                content: `Error [${event.code}]: ${event.message}`,
-              },
-            ],
+            messages: updatedMessages,
           };
+        }
 
         default:
           return { rawEvents };
       }
     }),
 }));
+
+function syncActiveConversation(messages: MessageItem[]) {
+  if (typeof window === "undefined") return;
+  import("./subagentStore").then(({ useSubagentStore }) => {
+    const activeAgentId = useSubagentStore.getState().activeChatAgentId;
+    if (activeAgentId) {
+      useSubagentStore.getState().setAgentMessages(activeAgentId, messages);
+    } else {
+      import("./chatStore").then(({ useChatStore }) => {
+        const activeChatId = useChatStore.getState().activeChatId;
+        if (activeChatId) {
+          useChatStore.getState().updateChatMessages(activeChatId, messages);
+        }
+      });
+    }
+  });
+}

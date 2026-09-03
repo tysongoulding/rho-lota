@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { MessageItem } from "./sessionStore";
 
 export interface SubagentDefinition {
   id: string;
@@ -114,6 +115,7 @@ interface SubagentState {
   subagents: SubagentDefinition[];
   selectedSubagentId: string | null;
   activeChatAgentId: string | null;
+  agentMessages: Record<string, MessageItem[]>;
   addSubagent: (agent: Omit<SubagentDefinition, "id" | "createdAt" | "state">) => SubagentDefinition;
   updateSubagent: (id: string, updates: Partial<SubagentDefinition>) => void;
   renameSubagent: (id: string, newName: string) => void;
@@ -122,9 +124,13 @@ interface SubagentState {
   setSelectedSubagentId: (id: string | null) => void;
   setActiveChatAgentId: (id: string | null) => void;
   setSubagentState: (id: string, state: SubagentDefinition["state"], detail?: string) => void;
+  getAgentMessages: (agentId: string) => MessageItem[];
+  setAgentMessages: (agentId: string, messages: MessageItem[]) => void;
+  clearAgentMessages: (agentId: string) => void;
 }
 
 const STORAGE_KEY = "rho_lota_subagents_v1";
+const MESSAGES_STORAGE_KEY = "rho_lota_agent_messages_v1";
 
 const loadInitialSubagents = (): SubagentDefinition[] => {
   try {
@@ -134,10 +140,34 @@ const loadInitialSubagents = (): SubagentDefinition[] => {
   return DEFAULT_SUBAGENTS;
 };
 
+const loadInitialAgentMessages = (): Record<string, MessageItem[]> => {
+  try {
+    const raw = localStorage.getItem(MESSAGES_STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return {
+    "sub-implementer": [
+      {
+        id: "msg-impl-1",
+        role: "assistant",
+        content: "I am **build-implementer**. I work the ordered technical plan tasks under strict TDD to turn red tests green without shortcuts.",
+      },
+    ],
+    "sub-qa": [
+      {
+        id: "msg-qa-1",
+        role: "assistant",
+        content: "I am **team-qa**. I inspect code diffs, author test plans, map boundary edges, and safeguard against regressions.",
+      },
+    ],
+  };
+};
+
 export const useSubagentStore = create<SubagentState>((set, get) => ({
   subagents: loadInitialSubagents(),
   selectedSubagentId: null,
   activeChatAgentId: null,
+  agentMessages: loadInitialAgentMessages(),
 
   addSubagent: (agent) => {
     const newAgent: SubagentDefinition = {
@@ -202,11 +232,15 @@ export const useSubagentStore = create<SubagentState>((set, get) => ({
   deleteSubagent: (id) =>
     set((state) => {
       const updated = state.subagents.filter((a) => a.id !== id);
+      const updatedMsgs = { ...state.agentMessages };
+      delete updatedMsgs[id];
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+        localStorage.setItem(MESSAGES_STORAGE_KEY, JSON.stringify(updatedMsgs));
       } catch {}
       return {
         subagents: updated,
+        agentMessages: updatedMsgs,
         selectedSubagentId: state.selectedSubagentId === id ? null : state.selectedSubagentId,
         activeChatAgentId: state.activeChatAgentId === id ? null : state.activeChatAgentId,
       };
@@ -221,5 +255,36 @@ export const useSubagentStore = create<SubagentState>((set, get) => ({
         a.id === id ? { ...a, state: stateVal, stateDetail: detail || a.stateDetail } : a
       );
       return { subagents: updated };
+    }),
+
+  getAgentMessages: (agentId) => {
+    const msgs = get().agentMessages[agentId];
+    if (msgs && Array.isArray(msgs)) return msgs;
+    const agent = get().subagents.find((a) => a.id === agentId);
+    return [
+      {
+        id: `init-${agentId}`,
+        role: "assistant",
+        content: `I am **${agent?.name || "Agent"}** (${agent?.role || "Specialist"}). How can I assist you with this workspace?`,
+      },
+    ];
+  },
+
+  setAgentMessages: (agentId, messages) =>
+    set((state) => {
+      const updated = { ...state.agentMessages, [agentId]: messages };
+      try {
+        localStorage.setItem(MESSAGES_STORAGE_KEY, JSON.stringify(updated));
+      } catch {}
+      return { agentMessages: updated };
+    }),
+
+  clearAgentMessages: (agentId) =>
+    set((state) => {
+      const updated = { ...state.agentMessages, [agentId]: [] };
+      try {
+        localStorage.setItem(MESSAGES_STORAGE_KEY, JSON.stringify(updated));
+      } catch {}
+      return { agentMessages: updated };
     }),
 }));

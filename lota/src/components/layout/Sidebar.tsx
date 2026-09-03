@@ -36,14 +36,15 @@ export function Sidebar() {
     setNewAgentModalOpen,
     setNewChatModalOpen,
   } = useUiStore();
-  const { sessionInfo, resetSession } = useSessionStore();
-  const { chats, activeChatId, switchChat, deleteChat, createChat } = useChatStore();
+  const { sessionInfo, setSessionMessages } = useSessionStore();
+  const { chats, activeChatId, switchChat, deleteChat } = useChatStore();
   const {
     subagents,
     activeChatAgentId,
     setActiveChatAgentId,
     cloneSubagent,
     deleteSubagent,
+    getAgentMessages,
   } = useSubagentStore();
   const { addToast } = useToastStore();
 
@@ -70,20 +71,20 @@ export function Sidebar() {
 
   if (!sidebarOpen) return null;
 
-  // 1. Direct Chat with Agent
+  // 1. Direct Dedicated Agent Conversation
   const handleChatWithAgent = (agent: SubagentDefinition) => {
     setActiveChatAgentId(agent.id);
-    // Create or switch to dedicated chat with this direct agent
-    const newChatId = createChat(`${agent.name} • ${agent.role}`);
-    switchChat(newChatId);
-    resetSession();
+    const msgs = getAgentMessages(agent.id);
+    setSessionMessages(msgs);
     setActiveView("chat");
-    addToast(`Chatting directly with ${agent.name}`, "info");
   };
 
+  // 2. Select General Chat Thread
   const handleSelectChat = (chatId: string) => {
+    setActiveChatAgentId(null);
     switchChat(chatId);
-    resetSession();
+    const targetChat = chats.find((c) => c.id === chatId);
+    setSessionMessages(targetChat ? targetChat.messages : []);
     setActiveView("chat");
   };
 
