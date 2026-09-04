@@ -1,25 +1,39 @@
+#[cfg(unix)]
 use super::hook::DaemonHook;
+#[cfg(unix)]
 use super::process::{DaemonProcess, DaemonSpawnArgs};
 use super::resolve::resolve_executable;
+#[cfg(unix)]
 use crate::plugin::host::HostDispatcher;
+#[cfg(unix)]
 use async_trait::async_trait;
 use rho_harness_core::config::PluginConfig;
+#[cfg(unix)]
 use rho_harness_core::presentation::activity::ActivityToken;
+#[cfg(unix)]
 use rho_harness_core::presentation::presenter::Presenter;
+#[cfg(unix)]
 use rho_harness_core::presentation::stream::ToolStreamPort;
+#[cfg(unix)]
 use rho_harness_core::presentation::{InteractionPrompt, InteractionResponse, SessionStatus, ToolLine, WelcomeDisplay};
+#[cfg(unix)]
 use rig::agent::AgentBuilder;
+#[cfg(unix)]
 use rig::test_utils::{MockCompletionModel, MockTurn};
+#[cfg(unix)]
 use serde_json::json;
 use std::path::{Path, PathBuf};
+#[cfg(unix)]
 use std::sync::{Arc, Mutex};
 use tempfile::tempdir;
 
+#[cfg(unix)]
 struct MockPresenter {
     has_ui: bool,
     response: Mutex<Option<InteractionResponse>>,
 }
 
+#[cfg(unix)]
 impl MockPresenter {
     fn new(has_ui: bool, response: Option<InteractionResponse>) -> Self {
         Self {
@@ -29,6 +43,7 @@ impl MockPresenter {
     }
 }
 
+#[cfg(unix)]
 #[async_trait]
 impl Presenter for MockPresenter {
     fn write_output(&self, _text: &str) {}
@@ -95,6 +110,7 @@ fn test_resolve_executable() {
     assert_eq!(args_cmd, vec!["-c", "exit 0"]);
 }
 
+#[cfg(unix)]
 #[tokio::test]
 async fn test_daemon_process_bidirectional_rpc_and_hook() {
     let dir = tempdir().unwrap();
@@ -153,6 +169,7 @@ done
     assert_eq!(response.output, "done");
 }
 
+#[cfg(unix)]
 #[tokio::test]
 async fn test_daemon_tool_call_skipped_when_denied() {
     let dir = tempdir().unwrap();
@@ -204,6 +221,7 @@ done
     assert!(history.contains("Dangerous operation blocked"));
 }
 
+#[cfg(unix)]
 #[tokio::test]
 async fn test_daemon_invalid_tool_repair() {
     let dir = tempdir().unwrap();

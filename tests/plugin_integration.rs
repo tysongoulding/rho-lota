@@ -1,25 +1,39 @@
 use rho_engine::auth::AuthStore;
 use rho_engine::engine::builder::AgentEngineBuilder;
+#[cfg(unix)]
 use rho_engine::plugin::daemon::{DaemonHook, DaemonProcess, DaemonSpawnArgs};
+#[cfg(unix)]
 use rho_engine::plugin::host::HostDispatcher;
 use rho_harness_core::config::Config;
+#[cfg(unix)]
 use rho_harness_core::presentation::activity::ActivityToken;
+#[cfg(unix)]
 use rho_harness_core::presentation::presenter::Presenter;
+#[cfg(unix)]
 use rho_harness_core::presentation::stream::ToolStreamPort;
+#[cfg(unix)]
 use rho_harness_core::presentation::transformer::{DisplayTransformerPipeline, ReplaceTransformer};
+#[cfg(unix)]
 use rho_harness_core::presentation::{InteractionPrompt, InteractionResponse, SessionStatus, ToolLine, WelcomeDisplay};
+#[cfg(unix)]
 use rig::agent::AgentBuilder;
+#[cfg(unix)]
 use rig::test_utils::{MockCompletionModel, MockTurn};
 use serde_json::json;
+#[cfg(unix)]
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+#[cfg(unix)]
+use std::sync::Mutex;
 use tempfile::tempdir;
 
+#[cfg(unix)]
 struct MockPresenter {
     has_ui: bool,
     interactive_response: Mutex<Option<InteractionResponse>>,
 }
 
+#[cfg(unix)]
 impl MockPresenter {
     fn new(has_ui: bool, response: Option<InteractionResponse>) -> Self {
         Self {
@@ -29,6 +43,7 @@ impl MockPresenter {
     }
 }
 
+#[cfg(unix)]
 #[async_trait::async_trait]
 impl Presenter for MockPresenter {
     fn write_output(&self, _text: &str) {}
@@ -58,11 +73,11 @@ impl Presenter for MockPresenter {
     }
 }
 
+#[cfg(unix)]
 fn create_executable_script(dir: &Path, name: &str, body: &str) -> PathBuf {
     let script_path = dir.join(name);
     let full = format!("#!/bin/sh\n{body}\n");
     std::fs::write(&script_path, full).expect("write script");
-    #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
         let mut perms = std::fs::metadata(&script_path).unwrap().permissions();
@@ -72,6 +87,7 @@ fn create_executable_script(dir: &Path, name: &str, body: &str) -> PathBuf {
     script_path
 }
 
+#[cfg(unix)]
 #[tokio::test]
 async fn test_decoupled_permission_plugin_with_interactive_modal() {
     let dir = tempdir().unwrap();
@@ -163,6 +179,7 @@ async fn test_dynamic_plugin_tool_registration_and_execution() {
     assert!(engine.tool_names().contains(&"read".to_string()));
 }
 
+#[cfg(unix)]
 #[tokio::test]
 async fn test_claude_code_compatibility_aliasing_and_repair_flow() {
     let dir = tempdir().unwrap();
@@ -277,6 +294,7 @@ async fn test_native_in_process_rho_plugin() {
     assert!(engine.tool_names().contains(&"read".to_string()));
 }
 
+#[cfg(unix)]
 #[tokio::test]
 async fn test_rag_document_injection_via_plugin() {
     let dir = tempdir().unwrap();
@@ -326,6 +344,7 @@ done
     assert_eq!(docs[0].text, "Strict layering required");
 }
 
+#[cfg(unix)]
 #[tokio::test]
 async fn test_plugin_block_and_status_dispatch() {
     let dir = tempdir().unwrap();

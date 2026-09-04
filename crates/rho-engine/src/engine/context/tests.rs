@@ -73,12 +73,12 @@ async fn test_user_config_skills_discovery() {
     .await;
     let plan_skill = ctx.skills.iter().find(|s| s.name == "plan").unwrap();
     assert_eq!(plan_skill.description, "Custom user plan override");
-    assert!(plan_skill.location.contains(".agents/skills/plan/SKILL.md"));
+    assert!(plan_skill.location.replace('\\', "/").contains(".agents/skills/plan/SKILL.md"));
     assert!(!ctx.skills.iter().any(|s| s.name == "ignored"));
 
     let prompt = ctx.build_system_prompt();
     assert!(prompt.contains("Custom user plan override"));
-    assert!(prompt.contains(".agents/skills/plan/SKILL.md"));
+    assert!(prompt.replace('\\', "/").contains(".agents/skills/plan/SKILL.md"));
 
     let _ = tokio::fs::remove_dir_all(temp_dir).await;
 }

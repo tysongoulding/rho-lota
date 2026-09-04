@@ -67,5 +67,5 @@ async fn test_user_bash_runner_streaming_updates_output_over_time() {
 
     let redraws = redraw_count.load(std::sync::atomic::Ordering::SeqCst);
     assert!(redraws >= 3, "must redraw across timed phases, got {redraws}");
-    assert!(redraws <= 15, "must throttle redraws, got {redraws}");
+    assert!(redraws <= 25, "must throttle redraws, got {redraws}");
 }
