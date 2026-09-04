@@ -1,6 +1,5 @@
 use super::editor::EditorState;
 use super::modal::ModalState;
-use std::time::Instant;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum QueueKind {
@@ -32,21 +31,6 @@ impl Activity {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RunningTool {
-    pub command: String,
-    pub started: Instant,
-}
-
-impl RunningTool {
-    pub fn new(command: impl Into<String>) -> Self {
-        Self {
-            command: command.into(),
-            started: Instant::now(),
-        }
-    }
-}
-
 #[derive(Debug, Default, Clone)]
 pub struct FooterState {
     pub activity: Activity,
@@ -68,6 +52,7 @@ pub struct FooterState {
     pub extra_status: Option<String>,
     pub hidden_status_count: usize,
     pub context: Option<String>,
+    pub show_label: bool,
 }
 
 impl PartialEq for FooterState {
@@ -91,6 +76,7 @@ impl PartialEq for FooterState {
             && self.extra_status == other.extra_status
             && self.hidden_status_count == other.hidden_status_count
             && self.context == other.context
+            && self.show_label == other.show_label
     }
 }
 
@@ -114,6 +100,7 @@ pub enum UiAction {
     DeleteToLineEnd,
     Yank,
     Undo,
+    Paste(String),
     Submit(QueueKind),
     Exit,
 }

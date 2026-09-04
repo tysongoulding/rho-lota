@@ -1,6 +1,9 @@
+mod action;
 pub mod autocomplete;
 pub mod editor;
 pub mod modal;
+pub mod paste;
+pub mod running_tool;
 #[cfg(test)]
 mod tests;
 pub mod types;
@@ -8,7 +11,8 @@ pub mod types;
 pub use autocomplete::{AutocompleteItem, AutocompleteState};
 pub use editor::EditorState;
 pub use modal::{ModalMode, ModalOption, ModalState};
-pub use types::{Activity, FooterState, QueueKind, QueuedMessage, RunningTool, UiAction, UiEffect};
+pub use running_tool::{MAX_RUNNING_BUFFER_BYTES, MAX_RUNNING_OUTPUT_BYTES, RunningTool};
+pub use types::{Activity, FooterState, QueueKind, QueuedMessage, UiAction, UiEffect};
 
 use std::collections::VecDeque;
 use types::ModalFrame;
@@ -17,7 +21,9 @@ use types::ModalFrame;
 pub struct InteractiveState {
     editor: EditorState,
     footer: FooterState,
+    active_tool: Option<RunningTool>,
     tools_expanded: bool,
+    hide_thinking: bool,
     queue: VecDeque<QueuedMessage>,
     modals: Vec<ModalFrame>,
     pub autocomplete: AutocompleteState,
@@ -39,6 +45,31 @@ impl InteractiveState {
     pub fn toggle_tools_expanded(&mut self) -> bool {
         self.tools_expanded = !self.tools_expanded;
         self.tools_expanded
+    }
+
+    pub fn hide_thinking(&self) -> bool {
+        self.hide_thinking
+    }
+
+    pub fn set_hide_thinking(&mut self, hide: bool) {
+        self.hide_thinking = hide;
+    }
+
+    pub fn toggle_thinking(&mut self) -> bool {
+        self.hide_thinking = !self.hide_thinking;
+        self.hide_thinking
+    }
+
+    pub fn active_tool(&self) -> Option<&RunningTool> {
+        self.active_tool.as_ref()
+    }
+
+    pub fn active_tool_mut(&mut self) -> Option<&mut RunningTool> {
+        self.active_tool.as_mut()
+    }
+
+    pub fn set_active_tool(&mut self, tool: Option<RunningTool>) {
+        self.active_tool = tool;
     }
 
     pub fn editor_mut(&mut self) -> &mut EditorState {
@@ -106,34 +137,5 @@ impl InteractiveState {
         let frame = self.modals.pop()?;
         self.editor = frame.saved_editor;
         Some(frame.modal)
-    }
-
-    pub fn apply(&mut self, action: UiAction) -> UiEffect {
-        match action {
-            UiAction::Insert(value) => self.editor.insert(value),
-            UiAction::InsertNewline => self.editor.insert_newline(),
-            UiAction::Backspace => self.editor.backspace(),
-            UiAction::Delete => self.editor.delete(),
-            UiAction::MoveLeft => self.editor.move_left(),
-            UiAction::MoveRight => self.editor.move_right(),
-            UiAction::MoveWordLeft => self.editor.move_word_left(),
-            UiAction::MoveWordRight => self.editor.move_word_right(),
-            UiAction::MoveToStart => self.editor.move_to_start(),
-            UiAction::MoveToEnd => self.editor.move_to_end(),
-            UiAction::DeleteWordBackward => self.editor.delete_word_backward(),
-            UiAction::DeleteWordForward => self.editor.delete_word_forward(),
-            UiAction::DeleteToLineStart => self.editor.delete_to_line_start(),
-            UiAction::DeleteToLineEnd => self.editor.delete_to_line_end(),
-            UiAction::Yank => self.editor.yank(),
-            UiAction::Undo => self.editor.undo(),
-            UiAction::Submit(kind) => {
-                if let Some(message) = self.editor.take_submission(kind) {
-                    self.queue.push_back(message.clone());
-                    return UiEffect::Queued(message);
-                }
-            }
-            UiAction::Exit => return UiEffect::Exit,
-        }
-        UiEffect::None
     }
 }

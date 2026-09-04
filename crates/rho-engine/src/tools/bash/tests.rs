@@ -1,5 +1,5 @@
 use super::*;
-use truncate::TruncatedBy;
+use crate::tools::truncate::DEFAULT_MAX_BYTES as MAX_BASH_BYTES;
 
 #[test]
 fn test_is_read_only_command() {
@@ -21,46 +21,17 @@ fn test_is_read_only_command() {
     assert!(!is_read_only_command("git config user.name model"));
     assert!(is_read_only_command("git branch --show-current"));
     assert!(is_read_only_command("git config --get user.name"));
-}
-
-#[test]
-fn test_truncate_tail_within_limits() {
-    let text = "line 1\nline 2\nline 3";
-    let res = truncate_tail(text, 10, 100);
-    assert!(!res.truncated);
-    assert_eq!(res.content, text);
-    assert_eq!(res.output_lines, 3);
-}
-
-#[test]
-fn test_truncate_tail_by_lines() {
-    let lines: Vec<String> = (1..=10).map(|i| format!("line {i}")).collect();
-    let text = lines.join("\n");
-    let res = truncate_tail(&text, 3, 1000);
-    assert!(res.truncated);
-    assert_eq!(res.truncated_by, Some(TruncatedBy::Lines));
-    assert_eq!(res.output_lines, 3);
-    assert_eq!(res.content, "line 8\nline 9\nline 10");
-}
-
-#[test]
-fn test_truncate_tail_by_bytes() {
-    let lines = vec!["aaaa", "bbbb", "cccc", "dddd"];
-    let text = lines.join("\n");
-    let res = truncate_tail(&text, 10, 9);
-    assert!(res.truncated);
-    assert_eq!(res.truncated_by, Some(TruncatedBy::Bytes));
-    assert_eq!(res.content, "cccc\ndddd");
-}
-
-#[test]
-fn test_truncate_tail_single_oversized_line() {
-    let long_line = "abcdefghijklmnopqrstuvwxyz";
-    let res = truncate_tail(long_line, 10, 5);
-    assert!(res.truncated);
-    assert_eq!(res.truncated_by, Some(TruncatedBy::Bytes));
-    assert!(res.last_line_partial);
-    assert_eq!(res.content, "vwxyz");
+    assert!(is_read_only_command("git rev-parse HEAD"));
+    assert!(is_read_only_command("git remote -v"));
+    assert!(is_read_only_command("jq . package.json"));
+    assert!(is_read_only_command("sort file.txt | uniq"));
+    assert!(is_read_only_command("python3 --version"));
+    assert!(is_read_only_command("node -v"));
+    assert!(is_read_only_command("npm test"));
+    assert!(is_read_only_command("go version"));
+    assert!(!is_read_only_command("npm publish"));
+    assert!(!is_read_only_command("python script.py"));
+    assert!(!is_read_only_command("git remote add origin https://..."));
 }
 
 #[test]
@@ -162,4 +133,116 @@ async fn test_bash_timeout() {
 
     assert!(res.is_error);
     assert!(res.content.contains("timed out after 1 seconds"));
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn test_bash_timeout_kills_process_group() {
+    let dir = tempfile::tempdir().unwrap();
+    let pid_file = dir.path().join("pid.txt");
+    let tool = BashTool::new(std::env::current_dir().unwrap());
+
+    let res = tool
+        .execute(BashArgs {
+            command: format!("echo $$ > '{}' && sleep 30 & wait", pid_file.display()),
+            timeout: Some(1),
+        })
+        .await
+        .unwrap();
+
+    assert!(res.is_error);
+    assert!(res.content.contains("timed out"));
+
+    let pid: u32 = std::fs::read_to_string(&pid_file)
+        .expect("read pid file")
+        .trim()
+        .parse()
+        .expect("parse pid");
+    assert!(!crate::process::is_pid_tracked(pid));
+    crate::process::wait_group_dead(pid).await;
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn test_bash_cancellation_kills_process_group() {
+    let dir = tempfile::tempdir().unwrap();
+    let pid_file = dir.path().join("pid.txt");
+    let tool = BashTool::new(std::env::current_dir().unwrap());
+
+    let mut future = Box::pin(tool.execute(BashArgs {
+        command: format!("echo $$ > '{}' && sleep 30 & wait", pid_file.display()),
+        timeout: Some(30),
+    }));
+
+    tokio::select! {
+        _ = async {
+            while !pid_file.exists() {
+                tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+            }
+        } => {}
+        _ = &mut future => {}
+    }
+
+    drop(future);
+
+    let content = std::fs::read_to_string(&pid_file).expect("read pid file");
+    let pid: u32 = content.trim().parse().expect("parse pid");
+    assert!(!crate::process::is_pid_tracked(pid));
+    crate::process::wait_group_dead(pid).await;
+}
+
+#[tokio::test]
+async fn test_bash_timeout_preserves_accumulated_output() {
+    let tool = BashTool::new(std::env::current_dir().unwrap());
+    let res = tool
+        .execute(BashArgs {
+            command: "echo 'early output'; sleep 3".to_string(),
+            timeout: Some(1),
+        })
+        .await
+        .unwrap();
+
+    assert!(res.is_error);
+    assert!(res.content.contains("early output"));
+    assert!(res.content.contains("timed out after 1 seconds"));
+}
+
+#[tokio::test]
+async fn test_bash_nonzero_exit_preserves_output_before_status() {
+    let tool = BashTool::new(std::env::current_dir().unwrap());
+    let res = tool
+        .execute(BashArgs {
+            command: "echo 'first output line'; exit 42".to_string(),
+            timeout: Some(5),
+        })
+        .await
+        .unwrap();
+
+    assert!(res.is_error);
+    assert!(res.content.contains("first output line"));
+    assert!(res.content.ends_with("Command exited with code 42"));
+}
+
+#[test]
+fn test_accumulator_sanitizes_binary_output() {
+    let mut acc = OutputAccumulator::new();
+    acc.append(b"hello\x00\x07world\n");
+    acc.finish();
+    let snap = acc.snapshot();
+    assert_eq!(snap.content, "helloworld\n");
+}
+
+#[tokio::test]
+async fn test_bash_sets_noninteractive_env_safeguards() {
+    let tool = BashTool::new(std::env::current_dir().unwrap());
+    let res = tool
+        .execute(BashArgs {
+            command: "echo \"CI=$CI;GIT=$GIT_TERMINAL_PROMPT;PAGER=$PAGER\"".to_string(),
+            timeout: Some(5),
+        })
+        .await
+        .unwrap();
+
+    assert!(!res.is_error);
+    assert!(res.content.contains("CI=true;GIT=0;PAGER=cat"));
 }

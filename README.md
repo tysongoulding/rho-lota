@@ -2,6 +2,12 @@
 
 `rho` is a fast, clean, minimal coding-agent CLI built in Rust on Rig 0.42.
 
+## Installation
+
+```sh
+cargo install rho
+```
+
 ## Quick Start
 
 ```sh
@@ -49,6 +55,7 @@ preventing terminal jitter.
 | `Enter`       | Submit prompt.                                                               |
 | `Shift+Enter` | Insert a newline without submitting.                                         |
 | `Ctrl+J`      | Insert a newline, including in terminals that encode it as a raw line feed.  |
+| `Ctrl+O`      | Toggle expanding or collapsing tool output in the transcript.                |
 | `Alt+Enter`   | Submit with follow-up queueing.                                              |
 | `Escape`      | Clear an idle draft, or cancel active execution and restore queued messages. |
 
@@ -59,14 +66,18 @@ order once the active turn settles.
 
 ## Core Built-in Tools
 
-`rho` includes 6 native, robust built-in tools:
+`rho` includes 8 native, robust built-in tools:
 
 - `read`: Read file contents with line numbering, offset, and limit safeguards.
 - `write`: Create or overwrite files (automatically creates parent directories).
 - `edit`: Make precise file edits with exact text replacement.
 - `bash`: Execute shell commands in the current working directory.
-- `search`: Search the web and return structured summaries and URLs.
-- `fetch`: Fetch and extract clean readable text or markdown from URLs.
+- `fd`: Find files and directories by workspace-relative path with a smart-case
+  regex; gitignore-aware and bounded.
+- `rg`: Search file contents by pattern with line-oriented results;
+  gitignore-aware, skips binary and oversized files, and bounds output.
+- `web_search`: Search the web and return structured summaries and URLs.
+- `web_fetch`: Fetch and extract clean readable text or markdown from URLs.
 
 ---
 
@@ -74,19 +85,19 @@ order once the active turn settles.
 
 | Provider       | Auth Type          | Environment Variable / Login                     |
 | -------------- | ------------------ | ------------------------------------------------ |
+| `chatgpt`      | Subscription OAuth | `rho login chatgpt` (OAuth PKCE)                 |
+| `copilot`      | Subscription OAuth | `rho login copilot` (GitHub device login)        |
+| `antigravity`  | Google OAuth       | `rho login antigravity` (OAuth PKCE)             |
+| `openrouter`   | OAuth / API Key    | `OPENROUTER_API_KEY` or `rho login openrouter`   |
 | `anthropic`    | API Key            | `ANTHROPIC_API_KEY` or `rho login anthropic`     |
 | `openai`       | API Key            | `OPENAI_API_KEY` or `rho login openai`           |
 | `deepseek`     | API Key            | `DEEPSEEK_API_KEY` or `rho login deepseek`       |
 | `gemini`       | API Key            | `GEMINI_API_KEY` or `rho login gemini`           |
-| `antigravity`  | API Key            | `GEMINI_API_KEY` or `rho login antigravity`      |
 | `groq`         | API Key            | `GROQ_API_KEY` or `rho login groq`               |
-| `openrouter`   | API Key            | `OPENROUTER_API_KEY` or `rho login openrouter`   |
 | `xai`          | API Key            | `XAI_API_KEY` or `rho login xai`                 |
 | `mistral`      | API Key            | `MISTRAL_API_KEY` or `rho login mistral`         |
 | `cohere`       | API Key            | `COHERE_API_KEY` or `rho login cohere`           |
 | `ollama-cloud` | API Key            | `OLLAMA_API_KEY` or `rho login ollama-cloud`     |
-| `chatgpt`      | Subscription OAuth | `rho login chatgpt` (OAuth PKCE)                 |
-| `copilot`      | Subscription OAuth | `rho login copilot` (GitHub device login)        |
 | `local`        | Local Service      | `OLLAMA_HOST` (default `http://localhost:11434`) |
 
 ### Custom OpenAI-compatible providers
@@ -113,32 +124,32 @@ readable artifact) work in the interactive REPL.
 
 ## Configuration & Skills (`~/.config/rho/`)
 
-Global settings, credentials, state cache, skills, and instructions live under
-`~/.config/rho` (override via `RHO_HOME`):
+Global settings, credentials, and state cache live under `~/.config/rho`
+(override via `RHO_HOME`):
 
 ```text
 ~/.config/rho/
 ├── auth.json              # Stored API keys and OAuth tokens
 ├── state.json             # Cached last-used model & thinking level
-├── config.toml            # Application settings
-├── AGENTS.md              # Global default agent rules & instructions
-└── skills/                # Global skills directory (SKILL.md files)
+└── config.toml            # Application settings
 ```
 
-- **Instructions**: Discovers global `~/.config/rho/AGENTS.md` and workspace
-  `./AGENTS.md`, `./CLAUDE.md`, or `./.cursorrules`.
+- **Instructions**: Discovers instructions hierarchically from global to
+  project:
+  1. Global user `~/.agents/AGENTS.md`
+  2. Project base `.agents/AGENTS.md`
+  3. Workspace `./AGENTS.md`, `./CLAUDE.md`, or `./.cursorrules`
 - **Skills**: Declarative `SKILL.md` workflows resolved with precedence:
-  1. Project `.rho/skills/` or `./skills/` (highest precedence, overrides user &
-     built-in)
-  2. User `~/.agents/skills/`, `~/.config/rho/skills/`, or `~/.skills/`
-  3. Embedded built-in skills (`create-plugin`, `plan`, `repo-agents-builder`,
-     `spec`)
+  1. Project `.agents/skills/`, `.rho/skills/`, or `./skills/` (highest
+     precedence, overrides user skills)
+  2. User `~/.agents/skills/`
 
   Skills can be written as single flat markdown files (`skills/my-skill.md`) or
   structured directories (`skills/my-skill/SKILL.md` with optional supporting
   scripts/examples). Metadata (name, description, argument hints) is declared in
-  YAML frontmatter. Invoke any skill in the REPL using `/skill:<name>` or
-  `@<name>`.
+  YAML frontmatter. Invoke any skill in the REPL using `/skill:<name>` (e.g.
+  `/skill:simplify src/api`); completion offers skill names after typing
+  `/skill `.
 
 ---
 
@@ -210,8 +221,25 @@ Full hook protocol, Host UI services, and language examples are documented in
 
 The workspace is structured into clean, focused crates and frontends:
 
-- **`rho-harness-core`**: Core domain logic, session DAG storage, configuration, token estimation, and presentation types.
-- **`rho-engine`**: Native `rig.rs` agent runtime, provider factory, built-in tools (`read`, `write`, `edit`, `bash`, `search`, `fetch`), and standard MCP client.
-- **`rho-plugin-sdk`**: Lightweight SDK for building Rig-native plugins and lifecycle hooks.
-- **`rho`**: Binary CLI entrypoint, interactive TUI editor, slash commands, and terminal rendering engine.
+- **`rho-harness-core`**: Core domain logic, session DAG storage, configuration,
+  token estimation, and presentation types.
+- **`rho-engine`**: Native `rig.rs` agent runtime, provider factory, built-in
+  tools (`read`, `write`, `edit`, `bash`, `fd`, `rg`, `web_search`,
+  `web_fetch`), and standard MCP client.
+- **`rho-plugin-sdk`**: Lightweight SDK for building Rig-native plugins and
+  lifecycle hooks.
+- **`rho`**: Binary CLI entrypoint, interactive TUI editor, slash commands, and
+  terminal rendering engine.
 - **`lota`**: Tauri 2.0 native desktop GUI application with real-time streaming, diff inspections, and workspace management.
+
+---
+
+## Development
+
+Run tests, formatting, and lint checks across the workspace:
+
+```sh
+cargo test --workspace
+cargo clippy --all-targets -- -D warnings
+cargo fmt --check
+```

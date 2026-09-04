@@ -4,7 +4,7 @@ use crate::mcp::load_mcp_tools;
 use rho_harness_core::config::{Config, McpConfig, McpServerConfig};
 use rig::memory::ConversationMemory;
 use std::collections::BTreeMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 fn temp_dir(label: &str) -> PathBuf {
     std::env::temp_dir().join(format!("engine_{label}_{}", uuid::Uuid::new_v4()))
@@ -13,9 +13,11 @@ fn temp_dir(label: &str) -> PathBuf {
 fn test_config(label: &str) -> (Config, PathBuf) {
     let dir = temp_dir(label);
     std::fs::create_dir_all(&dir).unwrap();
-    let mut config = Config::default();
-    config.sessions_dir = dir.join("sessions");
-    config.auth_file = dir.join("auth.json");
+    let config = Config {
+        sessions_dir: dir.join("sessions"),
+        auth_file: dir.join("auth.json"),
+        ..Default::default()
+    };
     (config, dir)
 }
 
@@ -27,7 +29,7 @@ fn with_dummy_provider_key() {
     }
 }
 
-fn mock_mcp_server(workspace: &PathBuf) -> (String, String) {
+fn mock_mcp_server(workspace: &Path) -> (String, String) {
     let script = workspace.join(format!("mock_mcp_server_{}.sh", uuid::Uuid::new_v4().simple()));
     std::fs::write(
         &script,
@@ -108,7 +110,7 @@ async fn rebuild_preserves_session_history_and_reattaches_tools() {
         .build()
         .await
         .unwrap();
-    assert_eq!(engine.tool_names.len(), tools.len());
+    assert_eq!(engine.tool_names().len(), tools.len());
 
     let session_id = engine.session_manager.session_id.clone();
     engine
@@ -133,7 +135,7 @@ async fn rebuild_preserves_session_history_and_reattaches_tools() {
 
     assert_eq!(rebuilt.config.max_turns, 7);
     assert_eq!(rebuilt.session_manager.session_id, session_id);
-    assert_eq!(rebuilt.tool_names.len(), tools.len());
+    assert_eq!(rebuilt.tool_names().len(), tools.len());
     let history_after = rebuilt.session_manager.load(&session_id).await.unwrap();
     assert_eq!(history_after, history_before);
     assert_eq!(std::fs::read(&jsonl).unwrap(), jsonl_before);
@@ -170,9 +172,9 @@ async fn rebuild_respawns_mcp_tools_and_reaps_previous_children() {
 
     let rebuilt = engine.rebuild(config.clone(), auth_store.clone()).await.unwrap();
     assert!(
-        rebuilt.tool_names.iter().any(|name| name == "mock_ping"),
+        rebuilt.tool_names().iter().any(|name| name == "mock_ping"),
         "rebuild must re-attach MCP tools, got: {:?}",
-        rebuilt.tool_names
+        rebuilt.tool_names()
     );
     // Old engine still alive here (rebuild borrows); drop it and confirm its
     // child is reaped while the rebuilt engine's child keeps running.
@@ -234,9 +236,27 @@ async fn builder_attaches_dynamic_plugin_tools() {
         .await
         .unwrap();
 
-    assert!(engine.tool_names.contains(&"generate_image".to_string()));
-    assert!(engine.tool_names.contains(&"read".to_string()));
-    assert!(engine.tool_names.contains(&"bash".to_string()));
+    assert!(engine.tool_names().contains(&"generate_image".to_string()));
+    assert!(engine.tool_names().contains(&"read".to_string()));
+    assert!(engine.tool_names().contains(&"bash".to_string()));
+
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[tokio::test]
+async fn refresh_quota_non_antigravity_is_noop() {
+    with_dummy_provider_key();
+    let (config, dir) = test_config("quota_noop");
+    let auth_store = AuthStore::load(&config.auth_file).unwrap_or_default();
+    let engine = builder::AgentEngineBuilder::new(config.clone(), auth_store.clone())
+        .base_dir(std::env::temp_dir())
+        .build()
+        .await
+        .unwrap();
+
+    assert_eq!(engine.quota_display(), None);
+    engine.refresh_quota().await;
+    assert_eq!(engine.quota_display(), None);
 
     std::fs::remove_dir_all(dir).unwrap();
 }

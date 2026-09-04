@@ -1,28 +1,22 @@
-//! Core `MarkdownRenderer` state machine.
-//!
-//! Owns the streaming state (current line, open code blocks, table buffer)
-//! and dispatches each input line to the appropriate handler.
+//! Core `MarkdownRenderer` state machine with spacing normalization.
 
-use super::elements::{is_table_line, render_inline_elements, render_markdown_table, render_mermaid_block};
 use super::highlight::highlight_code_line;
+use super::line::{CodeFenceTracker, needs_preceding_blank_line, render_line, should_buffer_line};
+use super::mermaid::MermaidBlockTracker;
+use super::spacing::SpacingTracker;
+use super::stream::InlineStreamTracker;
+use super::table::{is_table_line, render_markdown_table};
 use crate::ui::theme::Theme;
-use std::sync::LazyLock;
-
-static ORDERED_LIST: LazyLock<regex::Regex> =
-    LazyLock::new(|| regex::Regex::new(r"^(\d+\.)\s+(.*)$").expect("valid ordered list pattern"));
 
 #[derive(Default)]
 pub struct MarkdownRenderer {
-    in_code_block: bool,
-    in_mermaid_block: bool,
-    code_lang: Option<String>,
+    code_fence: CodeFenceTracker,
+    mermaid: MermaidBlockTracker,
     current_line: String,
     emitted_on_current_line: bool,
     table_lines: Vec<String>,
-    mermaid_lines: Vec<String>,
-    in_bold: bool,
-    in_italic: bool,
-    in_code: bool,
+    stream_tracker: InlineStreamTracker,
+    spacing: SpacingTracker,
 }
 
 impl MarkdownRenderer {
@@ -39,10 +33,12 @@ impl MarkdownRenderer {
             self.current_line.push_str(chunk);
 
             if self.emitted_on_current_line {
-                out.push_str(&self.render_inline_token(chunk, theme));
+                out.push_str(&self.stream_tracker.render_inline_token(chunk, theme));
+                out.push_str(&self.stream_tracker.reset_line());
                 out.push('\n');
                 self.current_line.clear();
                 self.emitted_on_current_line = false;
+                self.spacing.note_content();
             } else {
                 let line = std::mem::take(&mut self.current_line);
                 out.push_str(&self.process_line(&line, theme));
@@ -60,244 +56,95 @@ impl MarkdownRenderer {
 
     fn handle_trailing_chunk(&mut self, remaining: &str, theme: &Theme) -> String {
         self.current_line.push_str(remaining);
-
         if self.emitted_on_current_line {
-            return self.render_inline_token(remaining, theme);
+            return self.stream_tracker.render_inline_token(remaining, theme);
         }
-        if self.should_buffer_current_line() {
+        if self.code_fence.in_code_block
+            || self.mermaid.in_block()
+            || !self.table_lines.is_empty()
+            || should_buffer_line(&self.current_line)
+        {
             return String::new();
         }
-
         self.emitted_on_current_line = true;
-        self.render_inline_token(remaining, theme)
-    }
-
-    fn should_buffer_current_line(&self) -> bool {
-        if self.in_code_block || self.in_mermaid_block || !self.table_lines.is_empty() {
-            return true;
-        }
-
-        let trimmed = self.current_line.trim_start();
-        trimmed.starts_with('|')
-            || trimmed.starts_with('#')
-            || trimmed.starts_with('`')
-            || trimmed == ">"
-            || trimmed.starts_with("> ")
-            || trimmed == "-"
-            || trimmed.starts_with("- ")
-            || trimmed == "*"
-            || trimmed.starts_with("* ")
-            || trimmed.chars().all(|character| character.is_ascii_digit())
-            || (trimmed.len() >= 2
-                && trimmed.chars().next().is_some_and(|c| c.is_ascii_digit())
-                && trimmed.contains(". "))
-    }
-
-    fn render_inline_token(&mut self, token: &str, theme: &Theme) -> String {
         let mut out = String::new();
-        let bold_style = anstyle::Style::new().bold();
-        let italic_style = anstyle::Style::new().italic();
-
-        let chars: Vec<char> = token.chars().collect();
-        let len = chars.len();
-        let mut i = 0;
-
-        while i < len {
-            if chars[i] == '`' {
-                if self.in_code {
-                    out.push_str(&theme.code_inline.render_reset().to_string());
-                    self.in_code = false;
-                } else {
-                    out.push_str(&theme.code_inline.render().to_string());
-                    self.in_code = true;
-                }
-                i += 1;
-                continue;
-            }
-
-            if self.in_code {
-                out.push(chars[i]);
-                i += 1;
-                continue;
-            }
-
-            if i + 1 < len && chars[i] == '*' && chars[i + 1] == '*' {
-                if self.in_bold {
-                    out.push_str(&bold_style.render_reset().to_string());
-                    self.in_bold = false;
-                } else {
-                    out.push_str(&bold_style.render().to_string());
-                    self.in_bold = true;
-                }
-                i += 2;
-                continue;
-            }
-
-            if chars[i] == '*' && (i + 1 == len || chars[i + 1] != '*') {
-                if self.in_italic {
-                    out.push_str(&italic_style.render_reset().to_string());
-                    self.in_italic = false;
-                } else {
-                    out.push_str(&italic_style.render().to_string());
-                    self.in_italic = true;
-                }
-                i += 1;
-                continue;
-            }
-
-            out.push(chars[i]);
-            i += 1;
-        }
-
+        self.spacing.prepare_content(&mut out);
+        out.push_str(&self.stream_tracker.render_inline_token(&self.current_line, theme));
         out
     }
 
     pub fn flush(&mut self, theme: &Theme) -> String {
         let mut out = String::new();
-        if !self.table_lines.is_empty() {
-            let lines = std::mem::take(&mut self.table_lines);
-            out.push_str(&render_markdown_table(&lines, theme));
-        }
-        if self.in_mermaid_block && !self.mermaid_lines.is_empty() {
-            let lines = std::mem::take(&mut self.mermaid_lines);
-            self.in_mermaid_block = false;
-            out.push_str(&render_mermaid_block(&lines.join("\n"), theme));
-        }
-        if !self.current_line.is_empty() {
-            if !self.emitted_on_current_line {
-                let line = std::mem::take(&mut self.current_line);
-                out.push_str(&self.process_line(&line, theme));
-            } else {
-                self.current_line.clear();
-                out.push('\n');
-            }
+        self.flush_buffered_blocks(&mut out, theme);
+        if !self.current_line.is_empty() && !self.emitted_on_current_line {
+            let line = std::mem::take(&mut self.current_line);
+            out.push_str(&self.process_line(&line, theme));
         } else if self.emitted_on_current_line {
+            out.push_str(&self.stream_tracker.reset_line());
+            self.current_line.clear();
             out.push('\n');
+            self.spacing.note_content();
         }
         self.emitted_on_current_line = false;
         out
     }
 
+    fn flush_buffered_blocks(&mut self, out: &mut String, theme: &Theme) {
+        if !self.table_lines.is_empty() {
+            let rendered = render_markdown_table(&std::mem::take(&mut self.table_lines), theme);
+            self.spacing.append_block(out, &rendered);
+        }
+        if let Some(rendered) = self.mermaid.flush_rendered(theme) {
+            self.spacing.append_block(out, &rendered);
+        }
+    }
+
     fn process_line(&mut self, line: &str, theme: &Theme) -> String {
         let trimmed = line.trim();
 
-        if let Some(rendered) = self.check_mermaid_toggle(trimmed, theme) {
-            return rendered;
+        if let Some(opt_rendered) = self.mermaid.try_render_fence(trimmed, theme) {
+            let mut out = String::new();
+            if let Some(rendered) = opt_rendered {
+                self.spacing.append_block(&mut out, &rendered);
+            }
+            return out;
         }
-
-        if self.in_mermaid_block {
-            self.mermaid_lines.push(line.to_string());
+        if self.mermaid.in_block() {
+            self.mermaid.push_line(line);
             return String::new();
         }
-
         if is_table_line(trimmed) {
             self.table_lines.push(line.to_string());
             return String::new();
         }
 
         let mut out = String::new();
-        if !self.table_lines.is_empty() {
-            let lines = std::mem::take(&mut self.table_lines);
-            out.push_str(&render_markdown_table(&lines, theme));
+        self.flush_buffered_blocks(&mut out, theme);
+
+        if trimmed.is_empty() {
+            if self.code_fence.in_code_block {
+                self.spacing.prepare_content(&mut out);
+                out.push_str(&highlight_code_line(line, self.code_fence.code_lang.as_deref(), theme));
+                out.push('\n');
+                self.spacing.note_content();
+            } else {
+                self.spacing.handle_empty_line(&mut out);
+            }
+            return out;
         }
 
-        out.push_str(&self.render_line(line, theme));
+        if needs_preceding_blank_line(trimmed, self.code_fence.in_code_block) {
+            self.spacing.ensure_preceding_blank(&mut out);
+        }
+
+        self.spacing.prepare_content(&mut out);
+        out.push_str(&render_line(line, &mut self.code_fence, theme));
         out.push('\n');
+        self.spacing.note_content();
         out
     }
 
-    fn check_mermaid_toggle(&mut self, trimmed: &str, theme: &Theme) -> Option<String> {
-        if !trimmed.starts_with("```") {
-            return None;
-        }
-        let tag = trimmed.trim_start_matches('`').trim();
-        if self.in_mermaid_block {
-            self.in_mermaid_block = false;
-            let src = std::mem::take(&mut self.mermaid_lines).join("\n");
-            Some(render_mermaid_block(&src, theme))
-        } else if tag.eq_ignore_ascii_case("mermaid") {
-            self.in_mermaid_block = true;
-            self.mermaid_lines.clear();
-            Some(String::new())
-        } else {
-            None
-        }
-    }
-
     pub fn render_line(&mut self, line: &str, theme: &Theme) -> String {
-        let trimmed = line.trim();
-
-        if trimmed.starts_with("```") {
-            return self.toggle_code_fence(trimmed, theme);
-        }
-
-        if self.in_code_block {
-            return highlight_code_line(line, self.code_lang.as_deref(), theme);
-        }
-
-        if let Some(header) = self.render_header(line, theme) {
-            return header;
-        }
-
-        if let Some(list_item) = self.render_list_item(line, theme) {
-            return list_item;
-        }
-
-        if let Some(quote) = line.strip_prefix("> ") {
-            let d = theme.dimmed;
-            let formatted = render_inline_elements(quote, theme);
-            return format!("{d}│{d:#} {formatted}");
-        }
-
-        render_inline_elements(line, theme)
-    }
-
-    fn render_header(&self, line: &str, theme: &Theme) -> Option<String> {
-        if let Some(rest) = line.strip_prefix("### ") {
-            let h = theme.heading_h3;
-            let formatted = render_inline_elements(rest, theme);
-            return Some(format!("\n{h}### {formatted}{h:#}"));
-        }
-        if let Some(rest) = line.strip_prefix("## ") {
-            let p = theme.heading_h2;
-            let formatted = render_inline_elements(rest, theme);
-            return Some(format!("\n{p}## {formatted}{p:#}"));
-        }
-        if let Some(rest) = line.strip_prefix("# ") {
-            let hl = theme.heading_h1;
-            let formatted = render_inline_elements(rest, theme);
-            return Some(format!("\n{hl}# {formatted}{hl:#}"));
-        }
-        None
-    }
-
-    fn render_list_item(&self, line: &str, theme: &Theme) -> Option<String> {
-        if let Some(rest) = line.strip_prefix("- ").or_else(|| line.strip_prefix("* ")) {
-            let p = theme.prompt;
-            let formatted = render_inline_elements(rest, theme);
-            return Some(format!("{p}•{p:#} {formatted}"));
-        }
-        if let Some(caps) = ORDERED_LIST.captures(line) {
-            let num = &caps[1];
-            let rest = &caps[2];
-            let p = theme.prompt;
-            let formatted = render_inline_elements(rest, theme);
-            return Some(format!("{p}{num}{p:#} {formatted}"));
-        }
-        None
-    }
-
-    fn toggle_code_fence(&mut self, trimmed: &str, theme: &Theme) -> String {
-        let tag = trimmed.trim_start_matches('`').trim();
-        let dim = theme.dimmed;
-        if self.in_code_block {
-            self.in_code_block = false;
-            self.code_lang = None;
-            format!("{dim}```{dim:#}")
-        } else {
-            self.in_code_block = true;
-            self.code_lang = (!tag.is_empty()).then(|| tag.to_string());
-            format!("{dim}```{tag}{dim:#}")
-        }
+        render_line(line, &mut self.code_fence, theme)
     }
 }

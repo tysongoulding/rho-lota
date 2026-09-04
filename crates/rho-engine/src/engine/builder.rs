@@ -4,8 +4,11 @@ use super::tracking::{ContextTracker, QuotaTracker, UsageTracker};
 use crate::auth::AuthStore;
 use rho_harness_core::config::Config;
 use rho_harness_core::error::Result;
+use rho_harness_core::provider::ProviderId;
 use rho_harness_core::session::SessionManager;
+use rig::agent::ModelHandle;
 use std::path::PathBuf;
+use std::str::FromStr;
 use std::sync::Arc;
 
 pub struct AgentEngineBuilder {
@@ -88,24 +91,29 @@ impl AgentEngineBuilder {
         };
 
         let mut config = self.config;
+        let mut auth_store = self.auth_store;
         let is_unmodified_default = config.provider == "anthropic" && config.model == "claude-3-7-sonnet-20250219";
 
-        let model = match crate::provider::ProviderFactory::create_model(&config, &config.model, &self.auth_store) {
+        // Auto-refresh expired OAuth tokens before building the model client
+        // (get_key refreshes + persists when the stored token is stale).
+        if let Ok(provider_id) = ProviderId::from_str(config.provider.trim()) {
+            let _ = auth_store.get_key(provider_id.as_str()).await?;
+        }
+
+        let shared_auth = Arc::new(tokio::sync::Mutex::new(auth_store.clone()));
+
+        let model = match create_engine_model(&config, &auth_store, shared_auth.clone()) {
             Ok(m) => m,
             Err(e) => {
                 if is_unmodified_default {
-                    let configured = self.auth_store.list_configured_providers();
+                    let configured = auth_store.list_configured_providers();
                     let mut fallback = None;
                     for p in configured {
                         let default_model = default_model_for_provider(&p);
                         let mut trial_config = config.clone();
                         trial_config.provider = p.clone();
                         trial_config.model = default_model.to_string();
-                        if let Ok(m) = crate::provider::ProviderFactory::create_model(
-                            &trial_config,
-                            &trial_config.model,
-                            &self.auth_store,
-                        ) {
+                        if let Ok(m) = create_engine_model(&trial_config, &auth_store, shared_auth.clone()) {
                             config = trial_config;
                             fallback = Some(m);
                             break;
@@ -114,14 +122,14 @@ impl AgentEngineBuilder {
 
                     if let Some(m) = fallback {
                         m
-                    } else if let Ok(local_model) = crate::provider::ProviderFactory::create_model(
+                    } else if let Ok(local_model) = create_engine_model(
                         &Config {
                             provider: "local".to_string(),
                             model: "llama3.2".to_string(),
                             ..config.clone()
                         },
-                        "llama3.2",
-                        &self.auth_store,
+                        &auth_store,
+                        shared_auth.clone(),
                     ) {
                         config.provider = "local".to_string();
                         config.model = "llama3.2".to_string();
@@ -147,6 +155,7 @@ impl AgentEngineBuilder {
             None => None,
         };
 
+        let custom_tools = self.rig_tools.is_some();
         let mut tools = match self.rig_tools {
             Some(t) => t,
             None => crate::tools::builtin_tools::build_builtin_tools(&base_dir, &config)?,
@@ -154,29 +163,63 @@ impl AgentEngineBuilder {
         tools.extend(self.extra_tools);
         let tool_names = tools.iter().map(|t| t.name().to_string()).collect();
 
+        let mcp_loader = if !custom_tools && config.mcp.enabled && !config.mcp.servers.is_empty() {
+            let mcp_config = config.clone();
+            let mcp_dir = base_dir.clone();
+            let handle = tokio::spawn(async move { crate::mcp::load_mcp_tools(&mcp_config, &mcp_dir).await });
+            Some(handle)
+        } else {
+            None
+        };
+
         let agent = super::runtime::build_coding_agent(
-            model,
+            model.clone(),
             &config,
             CodingRuntime {
                 base_dir: &base_dir,
                 memory: session_manager.clone(),
-                built_in_tools: Some(tools),
+                built_in_tools: Some(tools.clone()),
             },
         )?;
 
         Ok(AgentEngine {
             config: config.clone(),
             session_manager,
-            tool_names,
+            tool_names: Arc::new(std::sync::RwLock::new(tool_names)),
             plugins: self.plugins,
-            agent: Box::new(agent),
+            agent: Arc::new(tokio::sync::RwLock::new(agent)),
             usage: UsageTracker::default(),
             quota: QuotaTracker::default(),
             context: ContextTracker::new(context_limit),
             run_tracker: super::metrics::RunTracker::default(),
             project_context: Arc::default(),
+            auth_store: shared_auth,
+            base_tools: tools,
+            base_dir,
+            model: Some(model),
+            mcp_loader: Arc::new(tokio::sync::Mutex::new(mcp_loader)),
         })
     }
+}
+
+fn create_engine_model(
+    config: &Config,
+    auth_store: &AuthStore,
+    shared_auth: Arc<tokio::sync::Mutex<AuthStore>>,
+) -> Result<ModelHandle> {
+    let name = config.provider.trim();
+    if let Ok(provider_id) = ProviderId::from_str(name) {
+        return crate::provider::ProviderFactory::create_model_for(
+            crate::provider::ModelRequest {
+                provider: provider_id,
+                model: &config.model,
+                thinking_level: config.thinking_level.as_deref(),
+                shared_auth: Some(shared_auth),
+            },
+            auth_store,
+        );
+    }
+    crate::provider::ProviderFactory::create_model(config, &config.model, auth_store)
 }
 
 fn default_model_for_provider(provider: &str) -> &'static str {

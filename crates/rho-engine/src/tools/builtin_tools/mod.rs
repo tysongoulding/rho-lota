@@ -3,19 +3,21 @@ pub mod catalog;
 mod tests;
 
 pub use catalog::{
-    BuiltinToolDeclaration, BuiltinToolKind, DECLARATIONS, PROMPT_BASH, PROMPT_EDIT, PROMPT_FETCH, PROMPT_READ,
-    PROMPT_SEARCH, PROMPT_WRITE,
+    BuiltinToolDeclaration, BuiltinToolKind, DECLARATIONS, PROMPT_BASH, PROMPT_EDIT, PROMPT_FD, PROMPT_READ, PROMPT_RG,
+    PROMPT_WEB_FETCH, PROMPT_WEB_SEARCH, PROMPT_WRITE,
 };
 
 use crate::tools::bash::{BashArgs, BashTool};
 use crate::tools::edit::{EditArgs, EditTool};
+use crate::tools::fd::FdTool;
 use crate::tools::read::{ReadArgs, ReadTool};
+use crate::tools::rg::RgTool;
 use crate::tools::types::{ToolResult, generated_schema, into_dynamic_result};
 use crate::tools::web::{
     FetchCache, HttpClient, SearchRateLimiter, WebFetchConfig, WebFetchTool, WebSearchConfig, WebSearchTool,
 };
 use crate::tools::write::{WriteArgs, WriteTool};
-use rho_harness_core::args::{FetchArgs, SearchArgs};
+use rho_harness_core::args::{FdArgs, RgArgs, WebFetchArgs, WebSearchArgs};
 use rho_harness_core::config::Config;
 use rho_harness_core::error::Result;
 use rig::tool::DynamicTool;
@@ -55,13 +57,15 @@ pub fn build_builtin_tools(base_dir: &Path, config: &Config) -> Result<Vec<Dynam
         [&config.config_dir, &config.sessions_dir],
     ));
     let bash = Arc::new(BashTool::new(base_dir));
+    let fd = Arc::new(FdTool::new(base_dir));
+    let rg = Arc::new(RgTool::new(base_dir));
 
     let mut tools = Vec::new();
 
     let r = Arc::clone(&read);
     tools.push(DynamicTool::new(
         "read",
-        "Read file contents with line numbering, offset, and limit safeguards.",
+        "Read file contents with line numbering, offset, and limit safeguards. Reads supported images (png, jpeg, gif, webp, bmp) and attaches them to the result.",
         generated_schema::<ReadArgs>(),
         move |_ctx, args| {
             let r = Arc::clone(&r);
@@ -80,13 +84,19 @@ pub fn build_builtin_tools(base_dir: &Path, config: &Config) -> Result<Vec<Dynam
         "write",
         "Write full content to a file, automatically creating parent directories.",
         generated_schema::<WriteArgs>(),
-        move |_ctx, args| {
+        move |ctx, args| {
             let w = Arc::clone(&w);
+            let stream = ctx.get::<rho_harness_core::presentation::ToolStreamPort>().cloned();
             Box::pin(async move {
                 let args: WriteArgs = match parse_args(args) {
                     Ok(a) => a,
                     Err(err) => return into_dynamic_result(Ok(err)),
                 };
+                if let Some(stream_port) = stream {
+                    for line in args.content.lines() {
+                        stream_port.stream_chunk(&format!("{line}\n"));
+                    }
+                }
                 into_dynamic_result(w.execute(args).await)
             })
         },
@@ -134,15 +144,49 @@ pub fn build_builtin_tools(base_dir: &Path, config: &Config) -> Result<Vec<Dynam
         },
     ));
 
+    let fd_tool = fd;
+    tools.push(DynamicTool::new(
+        "fd",
+        "Find files and directories by workspace-relative path with a smart-case regex; gitignore-aware and bounded.",
+        generated_schema::<FdArgs>(),
+        move |_ctx, args| {
+            let fd_tool = Arc::clone(&fd_tool);
+            Box::pin(async move {
+                let args: FdArgs = match parse_args(args) {
+                    Ok(a) => a,
+                    Err(err) => return into_dynamic_result(Ok(err)),
+                };
+                into_dynamic_result(fd_tool.execute(args).await)
+            })
+        },
+    ));
+
+    let rg_tool = rg;
+    tools.push(DynamicTool::new(
+        "rg",
+        "Search file contents with a smart-case regex; gitignore-aware, skips binary and large files, bounded.",
+        generated_schema::<RgArgs>(),
+        move |_ctx, args| {
+            let rg_tool = Arc::clone(&rg_tool);
+            Box::pin(async move {
+                let args: RgArgs = match parse_args(args) {
+                    Ok(a) => a,
+                    Err(err) => return into_dynamic_result(Ok(err)),
+                };
+                into_dynamic_result(rg_tool.execute(args).await)
+            })
+        },
+    ));
+
     let s = search;
     tools.push(DynamicTool::new(
-        "search",
+        "web_search",
         "Search the web and return structured search results with titles, summaries, and URLs.",
-        generated_schema::<SearchArgs>(),
+        generated_schema::<WebSearchArgs>(),
         move |_ctx, args| {
             let s = s.clone();
             Box::pin(async move {
-                let args: SearchArgs = match parse_args(args) {
+                let args: WebSearchArgs = match parse_args(args) {
                     Ok(a) => a,
                     Err(err) => return into_dynamic_result(Ok(err)),
                 };
@@ -153,13 +197,13 @@ pub fn build_builtin_tools(base_dir: &Path, config: &Config) -> Result<Vec<Dynam
 
     let f = fetch;
     tools.push(DynamicTool::new(
-        "fetch",
+        "web_fetch",
         "Fetch and extract readable content from a URL (HTML, JSON, Markdown, RSS/Atom, CSV, PDF).",
-        generated_schema::<FetchArgs>(),
+        generated_schema::<WebFetchArgs>(),
         move |_ctx, args| {
             let f = f.clone();
             Box::pin(async move {
-                let args: FetchArgs = match parse_args(args) {
+                let args: WebFetchArgs = match parse_args(args) {
                     Ok(a) => a,
                     Err(err) => return into_dynamic_result(Ok(err)),
                 };

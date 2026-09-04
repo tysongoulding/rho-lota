@@ -4,6 +4,7 @@
 #[cfg(test)]
 mod tests {
     use rho::engine::repeat::{REPEATED_CALL_MESSAGE, RepeatedCallHook, normalized_call_key};
+    use rho::tools::BashTool;
     use rig::agent::AgentBuilder;
     use rig::test_utils::{MockCompletionModel, MockTurn};
     use serde_json::{Value, json};
@@ -28,12 +29,12 @@ mod tests {
             key("bash", json!({"command":"cargo test", "timeout":31}))
         );
         assert_eq!(
-            key("search", json!({"query":" Rig   Memory ", "limit":null})),
-            key("search", json!({"query":"rig memory", "limit":5}))
+            key("web_search", json!({"query":" Rig   Memory ", "limit":null})),
+            key("web_search", json!({"query":"rig memory", "limit":5}))
         );
         assert_ne!(
-            key("search", json!({"query":"rig memory", "limit":5})),
-            key("search", json!({"query":"rig memory hook", "limit":5}))
+            key("web_search", json!({"query":"rig memory", "limit":5})),
+            key("web_search", json!({"query":"rig memory hook", "limit":5}))
         );
     }
 

@@ -15,13 +15,14 @@ Environment Variables:
   AI_PROVIDER                      - Default provider
   AI_THINKING_LEVEL                - Default thinking level (off, minimal, low, medium, high, xhigh, max)
   AI_MAX_OUTPUT_TOKENS             - Maximum output tokens per turn
-  AI_MAX_TURNS                     - Maximum model turns per run (default: 100)
+  AI_MAX_TURNS                     - Maximum model turns per run (default: 250)
   AI_CONTEXT_WINDOW_MESSAGES       - Context window messages before compaction (default: 24)
   AI_COMPACTION_MAX_BYTES          - Maximum bytes per compaction summary (default: 8192)
   RHO_HOME                         - Custom configuration directory (default: ~/.config/rho)
 
 Authentication:
-  API key: anthropic, openai, deepseek, gemini, groq, openrouter, xai, mistral, cohere, ollama-cloud, antigravity
-  Subscription OAuth: chatgpt, copilot (explicit login required via 'rho login <provider>')
+  OAuth or API key: openrouter
+  API key: anthropic, openai, deepseek, gemini, groq, xai, mistral, cohere, ollama-cloud
+  Subscription OAuth: chatgpt, copilot, antigravity (explicit login required via 'rho login <provider>')
   Local: local (no login required; customize with OLLAMA_HOST)
   Custom: Any OpenAI-compatible endpoint configured in config.toml under [providers.<name>]";

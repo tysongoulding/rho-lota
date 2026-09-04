@@ -3,10 +3,12 @@ use rho_harness_core::config::ProviderConfig;
 use std::collections::BTreeMap;
 
 fn config_with_provider(name: &str, spec: ProviderConfig, allow_private: bool) -> Config {
-    let mut config = Config::default();
-    config.provider = name.to_string();
+    let mut config = Config {
+        provider: name.to_string(),
+        allow_private_network: allow_private,
+        ..Default::default()
+    };
     config.providers.insert(name.to_string(), spec);
-    config.allow_private_network = allow_private;
     config
 }
 
@@ -131,8 +133,10 @@ fn well_known_provider_still_routes_to_dedicated_arms() {
     std::fs::create_dir_all(&dir).unwrap();
     let mut auth_store = AuthStore::load(dir.join("auth.json")).unwrap();
     auth_store.set_key("groq", "gsk-test").unwrap();
-    let mut config = Config::default();
-    config.provider = "groq".to_string();
+    let config = Config {
+        provider: "groq".to_string(),
+        ..Default::default()
+    };
     // A [providers.groq] entry would be rejected by config validation, so an
     // empty map proves the enum arm handled it.
     ProviderFactory::create_model(&config, "llama-3.3-70b", &auth_store).unwrap();
@@ -150,4 +154,42 @@ fn ollama_context_length_is_read_from_model_info() {
 
     let empty: serde_json::Map<String, serde_json::Value> = serde_json::Map::new();
     assert_eq!(ollama_context_from_info(&empty), None);
+}
+
+#[test]
+fn antigravity_collapse_sorts_newest_first() {
+    let live_ids: Vec<String> = vec![
+        "gemini-2.5-flash".into(),
+        "gemini-3.8-flash-high".into(),
+        "gemini-3.7-flash-low".into(),
+        "gemini-3.8-flash-medium".into(),
+        "claude-sonnet-4-6".into(),
+        "gemini-2.5-pro".into(),
+        "gemini-3.1-pro-low".into(),
+    ];
+    let models = crate::provider::discovery::sort_models_newest_first(
+        live_ids
+            .iter()
+            .map(|id| crate::provider::discovery::DiscoveredModel {
+                context_tokens: None,
+                id: id.clone(),
+                name: id.clone(),
+                provider: "antigravity".into(),
+                description: String::new(),
+            })
+            .collect(),
+    );
+    let ids: Vec<&str> = models.iter().map(|m| m.id.as_str()).collect();
+    assert_eq!(
+        ids,
+        vec![
+            "claude-sonnet-4-6",
+            "gemini-3.8-flash-high",
+            "gemini-3.8-flash-medium",
+            "gemini-3.7-flash-low",
+            "gemini-3.1-pro-low",
+            "gemini-2.5-flash", // (2,5) tie keeps input order
+            "gemini-2.5-pro",
+        ]
+    );
 }

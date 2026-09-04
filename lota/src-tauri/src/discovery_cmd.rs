@@ -50,9 +50,8 @@ pub struct SessionSummaryDto {
 
 #[tauri::command]
 pub fn list_installed_skills(project_dir: Option<String>) -> Result<Vec<SkillDto>, String> {
-    let config_dir = default_config_dir();
     let proj_path = project_dir.map(PathBuf::from);
-    let resolved = resolved_skills(Some(&config_dir), proj_path.as_deref());
+    let resolved = resolved_skills(proj_path.as_deref());
 
     let dtos = resolved
         .into_iter()

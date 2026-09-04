@@ -19,7 +19,8 @@
 
 ## Testing and performance
 
-- Use `cargo nextest run` for fast parallel test feedback during development.
+- Use `cargo test --workspace` for test feedback during development (a bare
+  `cargo test` only covers the root `rho` package, not the other crates).
 - Place unit tests in a dedicated `tests.rs` or `tests/` file
   (`#[cfg(test)] mod tests;`) to keep production implementation files concise
   and cleanly separated from test harnesses.
@@ -41,5 +42,5 @@
 
 ## Completion
 
-- For Rust crates: Run `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, and `cargo test --all-targets`.
+- For Rust crates: Run `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, and `cargo test --workspace`.
 - For Lota desktop frontend: Run `npm run test:e2e` in `lota/`.
